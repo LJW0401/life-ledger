@@ -1,0 +1,67 @@
+<!doctype html>
+<!-- UI preview shell for life-ledger; this file is a static prototype and does not contain product runtime code. -->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>life-ledger UI Preview</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <span class="brand-mark">LL</span>
+          <div>
+            <strong>life-ledger</strong>
+            <span>个人生活台账</span>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button type="button" class="nav-item" data-route="/important-dates">
+            <span class="nav-icon" aria-hidden="true">D</span>
+            <span>日期</span>
+          </button>
+          <button type="button" class="nav-item" data-route="/transactions">
+            <span class="nav-icon" aria-hidden="true">B</span>
+            <span>账单</span>
+          </button>
+          <button type="button" class="nav-item" data-route="/decisions">
+            <span class="nav-icon" aria-hidden="true">J</span>
+            <span>决策</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-note">
+          <span>首版范围</span>
+          <strong>3 个一级页面</strong>
+          <p>提醒、分析和设置先作为页面内能力或后续迭代。</p>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">UI Preview</p>
+            <h1 id="page-title">日期</h1>
+          </div>
+          <div class="topbar-actions">
+            <span class="status-pill">本地原型</span>
+            <button type="button" class="icon-button" title="搜索" aria-label="搜索">⌕</button>
+          </div>
+        </header>
+
+        <section id="app" class="page" aria-live="polite"></section>
+      </main>
+
+      <nav class="mobile-nav" aria-label="移动端主导航">
+        <button type="button" class="mobile-nav-item" data-route="/important-dates">日期</button>
+        <button type="button" class="mobile-nav-item" data-route="/transactions">账单</button>
+        <button type="button" class="mobile-nav-item" data-route="/decisions">决策</button>
+      </nav>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
