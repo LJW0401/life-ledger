@@ -47,6 +47,7 @@ life-ledger/
 
 ```text
 life-ledger/
+  docs/ui/             UI 设计文档、页面草图和交互说明
   cmd/server/          程序入口，最终编译成 life-ledger 二进制
   internal/config/     读取和校验 config.toml
   internal/api/        HTTP API
