@@ -7,16 +7,19 @@ BIN ?= $(BIN_DIR)/$(BIN_NAME)
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.1.0-dev)
 LDFLAGS := -s -w
 
-.PHONY: verify ci fmt-check vet test test-race check-release-notes web-install web-typecheck web-lint web-build frontend go-build backend build e2e-smoke build-cross init-local-config clean
+.PHONY: verify ci fmt-check check-workflows vet test test-race check-release-notes web-install web-typecheck web-lint web-build frontend go-build backend build e2e-smoke build-cross init-local-config clean
 
-verify: fmt-check web-build vet test web-typecheck web-lint go-build
+verify: fmt-check check-workflows web-build vet test web-typecheck web-lint go-build
 	@echo "verify ok"
 
-ci: fmt-check web-build vet test-race web-typecheck web-lint e2e-smoke go-build
+ci: fmt-check check-workflows web-build vet test-race web-typecheck web-lint e2e-smoke go-build
 	@echo "ci ok"
 
 fmt-check:
 	@test -z "$$(gofmt -l ./cmd ./internal ./web/*.go)" || (echo "gofmt diff detected; run gofmt -w ./cmd ./internal ./web/*.go" && gofmt -d ./cmd ./internal ./web/*.go && exit 1)
+
+check-workflows:
+	sh scripts/check-workflows.sh
 
 vet:
 	go vet ./...

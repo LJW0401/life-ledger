@@ -40,7 +40,7 @@ jobs:
       - name: Install Playwright browser
         run: |
           npm ci --prefix web --no-audit --no-fund
-          npm --prefix web exec playwright install --with-deps chromium
+          npm --prefix web exec -- playwright install --with-deps chromium
 
       - name: Full CI gate
         run: make ci
