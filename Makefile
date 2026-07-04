@@ -4,7 +4,7 @@
 BIN_DIR := bin
 BIN := $(BIN_DIR)/life-ledger
 
-.PHONY: build frontend backend clean
+.PHONY: build frontend backend init-local-config clean
 
 build: frontend backend
 
@@ -14,6 +14,9 @@ frontend:
 backend:
 	mkdir -p $(BIN_DIR)
 	go build -o $(BIN) ./cmd/server
+
+init-local-config: build
+	$(BIN) init-config --config $(BIN_DIR)/config.toml --cookie-secure=false
 
 clean:
 	rm -rf $(BIN_DIR)

@@ -46,6 +46,7 @@ life-ledger/
 首次部署前生成安全配置值：
 
 ```bash
+./life-ledger init-config
 ./life-ledger hash-password
 ./life-ledger generate-secret
 ```
@@ -86,6 +87,14 @@ make build
 bin/life-ledger
 ```
 
+首次本地运行前生成本地配置：
+
+```bash
+make init-local-config
+```
+
+该命令会创建 `bin/config.toml`、`bin/data/` 和 `bin/backups/`，并在终端输出一次性初始密码。`bin/config.toml` 已被 Git 忽略，不会提交。
+
 常用门控：
 
 ```bash
@@ -93,7 +102,7 @@ test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"
 go vet ./...
 go test ./...
 go test -race ./...
-go build ./cmd/server
+make build
 npm run typecheck
 npm run lint
 npm run build

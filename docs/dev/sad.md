@@ -112,7 +112,7 @@ internal/domain/*
 ### 3.2 程序入口模块
 
 - **职责**：解析 CLI 子命令，加载配置，初始化依赖，启动 HTTP 服务或执行一次性命令。
-- **对外接口**：`./life-ledger`、`./life-ledger --config`、`hash-password`、`generate-secret`、`backup`。
+- **对外接口**：`./life-ledger`、`./life-ledger --config`、`init-config`、`hash-password`、`generate-secret`、`backup`。
 - **依赖**：配置模块、应用组装模块、备份模块、安全辅助模块。
 - **关键设计决策**：入口只做编排，不写业务规则和 SQL。
 
@@ -121,7 +121,7 @@ internal/domain/*
 - **职责**：读取 `config.toml`、应用默认值、校验必填项和敏感配置。
 - **对外接口**：`Load(path) Config`、`Validate(config) error`。
 - **依赖**：TOML 解析库、文件权限检查。
-- **关键设计决策**：配置错误直接阻止启动；不支持明文密码配置。
+- **关键设计决策**：配置错误直接阻止启动；不支持明文密码配置；相对数据目录和备份目录按 `config.toml` 所在目录解析。
 
 ### 3.4 数据库模块
 
@@ -494,10 +494,9 @@ life.example.com {
 
 ```text
 npm install
-npm run build
 go test ./...
-go build -o dist/life-ledger ./cmd/server
-scp dist/life-ledger server:/opt/life-ledger/
+make build
+scp bin/life-ledger server:/opt/life-ledger/
 ```
 
 后续可以补充 GitHub Actions，但不是首版架构依赖。
@@ -512,7 +511,7 @@ scp dist/life-ledger server:/opt/life-ledger/
 - 静态检查：`go vet ./...`
 - 单元测试：`go test ./...`
 - 竞态测试：`go test -race ./...`
-- 构建检查：`go build ./cmd/server`
+- 构建检查：`make build`
 
 前端：
 

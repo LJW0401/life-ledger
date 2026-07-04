@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"life-ledger/internal/config"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,6 +41,49 @@ func TestGenerateSecretCommand(t *testing.T) {
 	}
 }
 
+func TestInitConfigCreatesRunnableLocalConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	var out bytes.Buffer
+	if err := initConfig(path, false, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Auth.Username != "admin" {
+		t.Fatalf("unexpected username: %s", cfg.Auth.Username)
+	}
+	if cfg.Security.CookieSecure {
+		t.Fatal("expected local init config to disable secure cookies")
+	}
+	password := outputValue(t, out.String(), "password: ")
+	if err := bcrypt.CompareHashAndPassword([]byte(cfg.Auth.PasswordHash), []byte(password)); err != nil {
+		t.Fatalf("generated password does not verify: %v", err)
+	}
+	for _, dir := range []string{"data", "backups"} {
+		info, err := os.Stat(filepath.Join(filepath.Dir(path), dir))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !info.IsDir() || info.Mode().Perm() != 0o700 {
+			t.Fatalf("%s dir mode = %s", dir, info.Mode().Perm())
+		}
+	}
+}
+
+func TestInitConfigRejectsExistingConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("already here"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err := initConfig(path, false, &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), "config already exists") {
+		t.Fatalf("expected existing config error, got %v", err)
+	}
+}
+
 func TestDefaultConfigPathUsesExecutableDirectory(t *testing.T) {
 	executable, err := filepath.Abs(os.Args[0])
 	if err != nil {
@@ -65,4 +110,15 @@ func TestRunRejectsUnknownCommand(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "unknown command") {
 		t.Fatalf("expected unknown command error, got %v", err)
 	}
+}
+
+func outputValue(t *testing.T, output string, prefix string) string {
+	t.Helper()
+	for _, line := range strings.Split(output, "\n") {
+		if strings.HasPrefix(line, prefix) {
+			return strings.TrimSpace(strings.TrimPrefix(line, prefix))
+		}
+	}
+	t.Fatalf("missing %q in output:\n%s", prefix, output)
+	return ""
 }

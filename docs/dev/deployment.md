@@ -96,7 +96,13 @@ dir = "./backups"
 ./life-ledger generate-secret
 ```
 
-辅助命令只输出配置值，不启动 HTTP 服务、不打开数据库、不修改配置文件。
+初始化本地配置：
+
+```bash
+./life-ledger init-config
+```
+
+`init-config` 默认在二进制文件所在目录创建 `config.toml`、`data/` 和 `backups/`，并输出一次性初始密码；若配置文件已存在则拒绝覆盖。`hash-password` 和 `generate-secret` 只输出配置值，不启动 HTTP 服务、不打开数据库、不修改配置文件。
 
 ## 4. Caddy 反向代理
 

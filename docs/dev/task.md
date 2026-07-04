@@ -28,7 +28,7 @@ test -z "$(gofmt -l ./cmd ./internal)"
 go vet ./...
 go test ./...
 go test -race ./...
-go build ./cmd/server
+make build
 ```
 
 前端门控：
@@ -215,7 +215,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **状态**：已完成
 - **描述**：创建 `cmd/server/`、`internal/`、`web/`、`go.mod`、前端 `package.json` 和构建脚本。
 - **验收标准**：
-  1. `go build ./cmd/server` 可以生成服务入口。
+  1. `make build` 可以生成 `bin/life-ledger` 服务入口。
   2. `npm run build` 可以生成前端 dist。
   3. 安全门控：`go vet ./...`、`go test ./...`、`npm run typecheck`、`npm run build` 通过。
 - **Notes**：
@@ -440,7 +440,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 **完成日期**：2026-07-04
 **验收结果**：通过
-**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`make build`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
 **集成门控**：WI-1.3G、WI-1.7、WI-1.10G、WI-1.14 通过
 **备注**：已建立 Go + React 单体骨架、配置校验、SQLite migration、SPA fallback 和三页 E2E 冒烟。
 
@@ -680,7 +680,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 **完成日期**：2026-07-04
 **验收结果**：通过
-**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`make build`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
 **集成门控**：WI-2.3G、WI-2.7、WI-2.10G、WI-2.14 通过
 **备注**：已实现应用内登录、设备会话、限速、CSRF、安全响应头、可信反代 IP、审计写入和登录态前端接入。
 
@@ -808,7 +808,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 **完成日期**：2026-07-04
 **验收结果**：通过
-**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`make build`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
 **集成门控**：WI-3.3G、WI-3.7 通过
 **备注**：已实现标签字典、重要日期 CRUD、标签筛选、删除审计和日期页端到端新增/删除链路。
 
@@ -1006,7 +1006,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 **完成日期**：2026-07-04
 **验收结果**：通过
-**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`make build`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
 **集成门控**：WI-4.3G、WI-4.7、WI-4.12 通过
 **备注**：已实现账单 CRUD、预算保存、统计汇总、标签筛选、删除审计和账单页新增/预算/删除 E2E 链路。
 
@@ -1192,7 +1192,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 **完成日期**：2026-07-04
 **验收结果**：通过
-**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`make build`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
 **集成门控**：WI-5.3G、WI-5.7、WI-5.11 通过
 **备注**：已实现账单 Excel 模板、导出、导入校验、事务写入、导入审计和账单页 Excel 控件。
 
@@ -1321,7 +1321,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. 备份成功生成完整备份包。
   2. 备份命令不启动 HTTP、不修改数据库。
-  3. 安全门控：`go test ./...`、`go build ./cmd/server` 通过。
+  3. 安全门控：`go test ./...`、`make build` 通过。
 - **Notes**：
   - Pattern：CLI 一次性命令和 HTTP 服务启动路径隔离。
   - Reference：PRD R18、deployment 文档。
@@ -1362,7 +1362,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **状态**：已完成
 - **描述**：验证决策功能和备份恢复不会互相破坏。
 - **验收标准**：
-  1. `go test ./... && npm run test:e2e && go build ./cmd/server` 通过。
+  1. `go test ./... && npm run test:e2e && make build` 通过。
   2. 恢复演练后日期、账单、决策数据均可读。
 
 - **Notes**：
@@ -1377,7 +1377,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 **完成日期**：2026-07-04
 **验收结果**：通过
-**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`make build`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
 **集成门控**：WI-6.3G、WI-6.7、WI-6.11 通过
 **备注**：已实现决策 CRUD、候选方案、状态分组、复盘归档、标签关联、删除审计、备份命令和备份包元数据校验。
 
@@ -1480,7 +1480,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. README 能指导用户构建、配置、启动和备份。
   2. `config.example.toml` 不包含真实密钥。
-  3. 安全门控：`git diff --check`、`go build ./cmd/server` 通过。
+  3. 安全门控：`git diff --check`、`make build` 通过。
 - **Notes**：
   - Pattern：发布文档必须与实际命令一致。
   - Reference：PRD 成功标准、deployment 文档。
@@ -1492,7 +1492,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **描述**：构建发布二进制并在临时目录用示例配置启动。
 - **验收标准**：
   1. Given 构建产物和配置文件, When 在临时目录启动, Then 浏览器可访问登录页。
-  2. 安全门控：`go build ./cmd/server` 通过。
+  2. 安全门控：`make build` 通过。
 
 - **Notes**：
   - Pattern：端到端正常路径验证，断言用户可观测结果。
@@ -1538,7 +1538,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 **完成日期**：2026-07-04
 **验收结果**：通过
-**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`make build`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
 **发布包冒烟**：临时目录构建 `life-ledger` 二进制，使用临时 `config.toml` 启动并访问 `http://127.0.0.1:18081/important-dates` 成功
 **集成门控**：WI-7.3、WI-7.6、WI-7.10 通过
 **备注**：已补齐发布安全边界测试、5000 条账单性能回归、批量标签查询优化、发布回归记录、README 和部署文档收口。

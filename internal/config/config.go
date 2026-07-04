@@ -165,10 +165,10 @@ func validate(cfg Config) error {
 		return fmt.Errorf("auth.username is required")
 	}
 	if cfg.Auth.PasswordHash == "" {
-		return fmt.Errorf("auth.password_hash is required")
+		return fmt.Errorf("auth.password_hash is required; run \"./life-ledger hash-password\" or \"./life-ledger init-config\" and write the result to config.toml")
 	}
 	if len(cfg.Auth.SessionSecret) < 32 {
-		return fmt.Errorf("auth.session_secret must be at least 32 bytes")
+		return fmt.Errorf("auth.session_secret must be at least 32 bytes; run \"./life-ledger generate-secret\" or \"./life-ledger init-config\" and write the result to config.toml")
 	}
 	if cfg.Auth.SessionDays <= 0 {
 		return fmt.Errorf("auth.session_days must be positive")
