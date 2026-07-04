@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
 
-async function login(page: import('@playwright/test').Page) {
+async function login(page: import('@playwright/test').Page, heading = '重要日期') {
   await page.getByLabel('用户名').fill('admin')
   await page.getByLabel('密码').fill('password')
   await page.getByRole('button', { name: '登录' }).click()
-  await expect(page.getByRole('heading', { name: '重要日期' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: heading })).toBeVisible()
 }
 
 test('unauthenticated root shows login after redirect', async ({ page }) => {
@@ -74,4 +74,33 @@ test('important dates can be created and deleted', async ({ page }) => {
   await expect(page.getByLabel('重要日期列表')).toContainText('证件')
   await page.getByRole('button', { name: '删除' }).click()
   await expect(page.getByLabel('重要日期列表')).not.toContainText('护照到期自动化')
+})
+
+test('transactions update summary and budget usage', async ({ page }) => {
+  await page.goto('/transactions')
+  await login(page, '账单流水')
+  const billForm = page.getByLabel('账单表单')
+  await billForm.getByLabel('日期', { exact: true }).fill('2026-07-04')
+  await billForm.getByLabel('时间').fill('08:30')
+  await billForm.getByLabel('金额').fill('25.50')
+  await billForm.getByLabel('分类').fill('餐饮')
+  await billForm.getByLabel('账户').fill('现金')
+  await billForm.getByLabel('标签').fill('日常')
+  await page.getByRole('button', { name: '保存账单' }).click()
+  await expect(page.getByLabel('账单列表')).toContainText('餐饮')
+  await expect(page.getByLabel('账单统计')).toContainText('支出 25.50')
+
+  const budgetForm = page.getByLabel('预算表单')
+  await budgetForm.getByLabel('月份').fill('2026-07')
+  await budgetForm.getByLabel('分类').fill('餐饮')
+  await budgetForm.getByLabel('预算').fill('100.00')
+  const budgetResponse = page.waitForResponse(
+    (response) => response.url().endsWith('/api/budgets') && response.request().method() === 'POST'
+  )
+  await page.getByRole('button', { name: '保存预算' }).click()
+  expect((await budgetResponse).status()).toBe(200)
+  await expect(page.getByLabel('预算列表')).toContainText('已用 25.50 / 100.00')
+
+  await page.getByRole('button', { name: '删除' }).click()
+  await expect(page.getByLabel('账单列表')).not.toContainText('餐饮')
 })

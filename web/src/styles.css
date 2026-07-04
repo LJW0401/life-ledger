@@ -179,9 +179,37 @@ button {
   gap: 16px;
 }
 
+.transaction-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stats strong {
+  border: 1px solid #dde3db;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
 .date-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  border: 1px solid #dde3db;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.budget-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   border: 1px solid #dde3db;
   border-radius: 8px;
@@ -195,8 +223,15 @@ button {
   color: #47524a;
 }
 
+.budget-form label {
+  display: grid;
+  gap: 6px;
+  color: #47524a;
+}
+
 .date-form input,
-.date-form select {
+.date-form select,
+.budget-form input {
   min-height: 38px;
   border: 1px solid #c9d0c8;
   border-radius: 8px;
@@ -205,8 +240,20 @@ button {
 }
 
 .date-form button,
-.date-form .error {
+.date-form .error,
+.budget-form button {
   align-self: end;
+}
+
+.check {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.check input {
+  min-height: auto;
 }
 
 .empty {
@@ -268,6 +315,11 @@ button {
   }
 
   .date-form {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-form,
+  .stats {
     grid-template-columns: 1fr;
   }
 }

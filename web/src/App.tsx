@@ -20,6 +20,33 @@ type ImportantDate = {
   note: string
   tags: string[]
 }
+type Transaction = {
+  id: string
+  date: string
+  time: string
+  type: string
+  amount: string
+  category: string
+  include_income: boolean
+  include_budget: boolean
+  ledger: string
+  account: string
+  tags: string[]
+}
+type Summary = {
+  income: string
+  expense: string
+  balance: string
+}
+type Budget = {
+  id: string
+  month: string
+  category: string
+  amount: string
+  used: string
+  remaining: string
+  overspent: boolean
+}
 
 const routes: Array<{
   path: Route
@@ -63,6 +90,10 @@ export function App() {
   const [devices, setDevices] = useState<Device[]>([])
   const [importantDates, setImportantDates] = useState<ImportantDate[]>([])
   const [dateError, setDateError] = useState('')
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [summary, setSummary] = useState<Summary>({ income: '0.00', expense: '0.00', balance: '0.00' })
+  const [budgets, setBudgets] = useState<Budget[]>([])
+  const [transactionError, setTransactionError] = useState('')
   const current = useMemo(() => {
     return routes.find((route) => route.path === currentPath) ?? routes[0]
   }, [currentPath])
@@ -86,6 +117,7 @@ export function App() {
     setCsrfToken(payload.csrf_token)
     setAuthStatus('authenticated')
     void loadImportantDates()
+    void loadTransactions()
   }
 
   async function login(event: FormEvent<HTMLFormElement>) {
@@ -109,6 +141,7 @@ export function App() {
     setCsrfToken(payload.csrf_token)
     setAuthStatus('authenticated')
     await loadImportantDates()
+    await loadTransactions()
   }
 
   async function logout() {
@@ -180,6 +213,93 @@ export function App() {
     })
     if (response.ok) {
       await loadImportantDates()
+    }
+  }
+
+  async function loadTransactions() {
+    const [transactionsResponse, summaryResponse, budgetsResponse] = await Promise.all([
+      fetch('/api/transactions'),
+      fetch('/api/transactions/summary'),
+      fetch('/api/budgets')
+    ])
+    if (transactionsResponse.ok) {
+      const payload = (await transactionsResponse.json()) as { items: Transaction[] }
+      setTransactions(payload.items ?? [])
+    }
+    if (summaryResponse.ok) {
+      setSummary((await summaryResponse.json()) as Summary)
+    }
+    if (budgetsResponse.ok) {
+      const payload = (await budgetsResponse.json()) as { items: Budget[] }
+      setBudgets(payload.items ?? [])
+    }
+  }
+
+  async function createTransaction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
+    setTransactionError('')
+    const tags = String(form.get('tags') ?? '')
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+    const response = await fetch('/api/transactions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({
+        date: form.get('date'),
+        time: form.get('time'),
+        type: form.get('type'),
+        amount: form.get('amount'),
+        category: form.get('category'),
+        include_income: form.get('include_income') === 'on',
+        include_budget: form.get('include_budget') === 'on',
+        ledger: form.get('ledger'),
+        account: form.get('account'),
+        tags
+      })
+    })
+    if (!response.ok) {
+      setTransactionError('保存失败')
+      return
+    }
+    formElement.reset()
+    await loadTransactions()
+  }
+
+  async function deleteTransaction(id: string) {
+    const response = await fetch(`/api/transactions/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': csrfToken }
+    })
+    if (response.ok) {
+      await loadTransactions()
+    }
+  }
+
+  async function saveBudget(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
+    const response = await fetch('/api/budgets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({
+        month: form.get('month'),
+        category: form.get('category'),
+        amount: form.get('amount')
+      })
+    })
+    if (response.ok) {
+      formElement.reset()
+      await loadTransactions()
     }
   }
 
@@ -272,6 +392,16 @@ export function App() {
             onCreate={createImportantDate}
             onDelete={deleteImportantDate}
           />
+        ) : current.path === '/transactions' ? (
+          <TransactionsPage
+            items={transactions}
+            summary={summary}
+            budgets={budgets}
+            error={transactionError}
+            onCreate={createTransaction}
+            onDelete={deleteTransaction}
+            onSaveBudget={saveBudget}
+          />
         ) : (
           <section className="list" aria-label={`${current.title}列表`}>
             {current.rows.map((row) => (
@@ -284,6 +414,120 @@ export function App() {
         )}
       </section>
     </main>
+  )
+}
+
+function TransactionsPage({
+  items,
+  summary,
+  budgets,
+  error,
+  onCreate,
+  onDelete,
+  onSaveBudget
+}: {
+  items: Transaction[]
+  summary: Summary
+  budgets: Budget[]
+  error: string
+  onCreate: (event: FormEvent<HTMLFormElement>) => void
+  onDelete: (id: string) => void
+  onSaveBudget: (event: FormEvent<HTMLFormElement>) => void
+}) {
+  return (
+    <section className="transaction-layout">
+      <section className="stats" aria-label="账单统计">
+        <strong>收入 {summary.income}</strong>
+        <strong>支出 {summary.expense}</strong>
+        <strong>余额 {summary.balance}</strong>
+      </section>
+      <form className="date-form" aria-label="账单表单" onSubmit={onCreate}>
+        <label>
+          日期
+          <input name="date" type="date" />
+        </label>
+        <label>
+          时间
+          <input name="time" type="time" />
+        </label>
+        <label>
+          类型
+          <select name="type" defaultValue="支出">
+            <option>支出</option>
+            <option>收入</option>
+          </select>
+        </label>
+        <label>
+          金额
+          <input name="amount" inputMode="decimal" />
+        </label>
+        <label>
+          分类
+          <input name="category" />
+        </label>
+        <label>
+          所属账本
+          <input name="ledger" defaultValue="默认账本" />
+        </label>
+        <label>
+          账户
+          <input name="account" />
+        </label>
+        <label>
+          标签
+          <input name="tags" />
+        </label>
+        <label className="check">
+          <input name="include_income" type="checkbox" defaultChecked />
+          计入收支
+        </label>
+        <label className="check">
+          <input name="include_budget" type="checkbox" defaultChecked />
+          计入预算
+        </label>
+        {error ? <p className="error">{error}</p> : null}
+        <button type="submit">保存账单</button>
+      </form>
+      <form className="budget-form" aria-label="预算表单" onSubmit={onSaveBudget}>
+        <label>
+          月份
+          <input name="month" placeholder="2026-07" />
+        </label>
+        <label>
+          分类
+          <input name="category" />
+        </label>
+        <label>
+          预算
+          <input name="amount" inputMode="decimal" />
+        </label>
+        <button type="submit">保存预算</button>
+      </form>
+      <section className="list" aria-label="预算列表">
+        {budgets.map((budget) => (
+          <article className="item" key={budget.id}>
+            <span>
+              {budget.month} · {budget.category} · 已用 {budget.used} / {budget.amount}
+              {budget.overspent ? ' · 超支' : ''}
+            </span>
+          </article>
+        ))}
+      </section>
+      <section className="list" aria-label="账单列表">
+        {items.length === 0 ? <p className="empty">暂无记录</p> : null}
+        {items.map((item) => (
+          <article className="item" key={item.id}>
+            <span>
+              {item.type} · {item.category} · {item.amount}
+              {item.tags.length > 0 ? ` · ${item.tags.join(', ')}` : ''}
+            </span>
+            <button type="button" onClick={() => onDelete(item.id)}>
+              删除
+            </button>
+          </article>
+        ))}
+      </section>
+    </section>
   )
 }
 

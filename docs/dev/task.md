@@ -820,6 +820,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-4.1 [M] 实现账单 API 和数据层
 
+- **状态**：已完成
 - **描述**：实现账单 CRUD、筛选、分页、收支统计字段和审计调用。
 - **验收标准**：
   1. 支持日期、时间、类型、金额、分类、计入收支、计入预算、所属账本等字段。
@@ -832,6 +833,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-4.2 [S] Smoke 测试 — 账单 API
 
+- **状态**：已完成
 - **描述**：验证账单新增、列表筛选、编辑、删除。
 - **验收标准**：
   1. Given 合法账单, When 保存, Then 列表和详情可读取。
@@ -843,6 +845,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-4.3 [S] 异常测试 — 账单 API
 
+- **状态**：已完成
 - **描述**：覆盖金额、枚举、缺字段、分页和认证异常。
 - **覆盖场景清单**：
   - [x] 非法输入：金额为空、为零、格式非法，类型非法。
@@ -861,6 +864,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-4.3G [集成门控] 账单 API 集成
 
+- **状态**：已完成
 - **描述**：验证账单 CRUD、筛选、分页、认证和审计基础集成状态。
 - **验收标准**：
   1. `go test ./... && go test -race ./...` 通过。
@@ -872,6 +876,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-4.4 [M] 实现预算和基础统计
 
+- **状态**：已完成
 - **描述**：实现月份 + 分类预算、预算消耗、收入支出余额和分类占比。
 - **验收标准**：
   1. 支出且 `计入预算=是` 才消耗预算。
@@ -884,6 +889,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-4.5 [S] Smoke 测试 — 预算和统计
 
+- **状态**：已完成
 - **描述**：验证预算创建、账单计入预算、统计卡片返回正确结果。
 - **验收标准**：
   1. Given 月份分类预算和支出账单, When 查询预算, Then 返回已用、剩余、比例。
@@ -895,6 +901,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-4.6 [S] 异常测试 — 预算和统计
 
+- **状态**：已完成
 - **描述**：覆盖非法预算金额、收入账单、计入预算否、筛选边界。
 - **覆盖场景清单**：
   - [x] 非法输入：预算金额为空、为零、格式非法。
@@ -913,6 +920,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-4.7 [集成门控] 账单预算 API 集成
 
+- **状态**：已完成
 - **描述**：验证账单、预算、统计和审计集成状态。
 - **验收标准**：
   1. `go test ./... && go test -race ./...` 通过。
@@ -924,6 +932,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：CI 门控/本地完整门控命令。
 #### WI-4.8 [M] 实现账单页前端
 
+- **状态**：已完成
 - **描述**：实现账单列表、表单、筛选、统计卡片、预算使用展示。
 - **验收标准**：
   1. 用户可以在账单页完成账单新增、筛选、编辑、删除。
@@ -936,6 +945,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-4.9 [S] Smoke 测试 — 账单页
 
+- **状态**：已完成
 - **描述**：用 E2E 验证账单页新增、筛选、统计和预算展示。
 - **验收标准**：
   1. Given 登录用户创建账单, When 返回列表, Then 统计卡片同步更新。
@@ -947,6 +957,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-4.10 [S] 异常测试 — 账单页
 
+- **状态**：已完成
 - **描述**：覆盖表单校验、API 错误提示和无数据状态。
 - **覆盖场景清单**：
   - [x] 非法输入：金额为空或格式非法。
@@ -965,6 +976,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-4.11 [S] 性能测试 — 账单和统计
 
+- **状态**：已完成
 - **描述**：验证 5000 条以内账单列表和统计满足 P95 小于 300ms 的目标。
 - **验收标准**：
   1. Given 测试数据库有 5000 条账单, When 请求常规列表和统计 API, Then P95 小于 300ms。
@@ -976,6 +988,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：`docs/dev/` 文档集。
 #### WI-4.12 [集成门控] 账单页完整切片
 
+- **状态**：已完成
 - **描述**：验证账单、预算、统计从 UI 到 SQLite 全链路。
 - **验收标准**：
   1. `go test ./... && npm run typecheck && npm run test:e2e` 通过。
@@ -989,7 +1002,13 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 1. Given 登录用户使用账单页, When 完成账单和预算操作, Then 统计与预算实时反映最新数据。
 2. Given 非法账单或预算输入, When 保存, Then API 和 UI 均给出明确错误且不写入脏数据。
-3. 阶段状态：未开始。
+3. 阶段状态：已完成。
+
+**完成日期**：2026-07-04
+**验收结果**：通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**集成门控**：WI-4.3G、WI-4.7、WI-4.12 通过
+**备注**：已实现账单 CRUD、预算保存、统计汇总、标签筛选、删除审计和账单页新增/预算/删除 E2E 链路。
 
 ---
 

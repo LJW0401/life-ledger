@@ -143,6 +143,50 @@ func TestImportantDatesCRUDTagsAndAudit(t *testing.T) {
 	}
 }
 
+func TestTransactionsBudgetsSummaryAndAudit(t *testing.T) {
+	handler, conn := testAPI(t)
+	defer conn.Close()
+	cookie, csrf := loginForTest(t, handler)
+
+	invalid := requestWithHeaders(t, handler, http.MethodPost, "/api/transactions", `{"date":"2026-07-04","time":"08:30","type":"支出","amount":"0","category":"餐饮","include_income":true,"include_budget":true,"ledger":"默认账本"}`, []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid transaction status = %d", invalid.Code)
+	}
+
+	create := requestWithHeaders(t, handler, http.MethodPost, "/api/transactions", `{"date":"2026-07-04","time":"08:30","type":"支出","amount":"25.50","category":"餐饮","include_income":true,"include_budget":true,"ledger":"默认账本","account":"现金","tags":["日常"]}`, []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if create.Code != http.StatusCreated {
+		t.Fatalf("create transaction status = %d body = %s", create.Code, create.Body.String())
+	}
+	id := jsonString(t, create.Body.Bytes(), "id")
+
+	budget := requestWithHeaders(t, handler, http.MethodPost, "/api/budgets", `{"month":"2026-07","category":"餐饮","amount":"100.00"}`, []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if budget.Code != http.StatusOK || !bytes.Contains(budget.Body.Bytes(), []byte(`"used":"25.50"`)) {
+		t.Fatalf("budget status = %d body = %s", budget.Code, budget.Body.String())
+	}
+
+	summary := request(t, handler, http.MethodGet, "/api/transactions/summary?from=2026-07-01&to=2026-07-31", "", []*http.Cookie{cookie})
+	if summary.Code != http.StatusOK || !bytes.Contains(summary.Body.Bytes(), []byte(`"expense":"25.50"`)) {
+		t.Fatalf("summary status = %d body = %s", summary.Code, summary.Body.String())
+	}
+
+	list := request(t, handler, http.MethodGet, "/api/transactions?tag=日常", "", []*http.Cookie{cookie})
+	if list.Code != http.StatusOK || !bytes.Contains(list.Body.Bytes(), []byte("餐饮")) {
+		t.Fatalf("list status = %d body = %s", list.Code, list.Body.String())
+	}
+
+	deleted := requestWithHeaders(t, handler, http.MethodDelete, "/api/transactions/"+id, "", []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if deleted.Code != http.StatusOK {
+		t.Fatalf("delete transaction status = %d body = %s", deleted.Code, deleted.Body.String())
+	}
+	var auditCount int
+	if err := conn.QueryRow(`SELECT COUNT(1) FROM audit_events WHERE event_type = 'delete_transaction' AND resource_id = ?`, id).Scan(&auditCount); err != nil {
+		t.Fatal(err)
+	}
+	if auditCount != 1 {
+		t.Fatalf("expected transaction delete audit, got %d", auditCount)
+	}
+}
+
 func testAPI(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 	dir := t.TempDir()

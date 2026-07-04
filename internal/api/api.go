@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"life-ledger/internal/audit"
@@ -14,6 +15,7 @@ import (
 	"life-ledger/internal/config"
 	"life-ledger/internal/domain/importantdates"
 	"life-ledger/internal/domain/tags"
+	"life-ledger/internal/domain/transactions"
 	"life-ledger/internal/security"
 )
 
@@ -21,6 +23,7 @@ type API struct {
 	auth           auth.Service
 	audit          audit.Recorder
 	importantDates importantdates.Service
+	transactions   transactions.Service
 	tags           tags.Store
 }
 
@@ -35,6 +38,7 @@ func New(cfg config.Config, conn *sql.DB) http.Handler {
 		},
 		audit:          recorder,
 		importantDates: importantdates.Service{DB: conn, Tags: tagStore},
+		transactions:   transactions.Service{DB: conn, Tags: tagStore},
 		tags:           tagStore,
 	}
 }
@@ -74,6 +78,20 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.importantDateByID(w, r, session)
 	case r.URL.Path == "/api/tags" && r.Method == http.MethodGet:
 		a.listTags(w, r)
+	case r.URL.Path == "/api/transactions" && r.Method == http.MethodGet:
+		a.listTransactions(w, r)
+	case r.URL.Path == "/api/transactions" && r.Method == http.MethodPost:
+		a.createTransaction(w, r)
+	case r.URL.Path == "/api/transactions/summary" && r.Method == http.MethodGet:
+		a.transactionSummary(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/transactions/"):
+		a.transactionByID(w, r, session)
+	case r.URL.Path == "/api/budgets" && r.Method == http.MethodGet:
+		a.listBudgets(w, r)
+	case r.URL.Path == "/api/budgets" && r.Method == http.MethodPost:
+		a.saveBudget(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/budgets/") && r.Method == http.MethodDelete:
+		a.deleteBudget(w, r)
 	case r.URL.Path == "/api/devices" && r.Method == http.MethodGet:
 		a.devices(w, r, session)
 	case strings.HasPrefix(r.URL.Path, "/api/devices/") && r.Method == http.MethodDelete:
@@ -226,6 +244,121 @@ func (a *API) listTags(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"items": items})
 }
 
+func (a *API) listTransactions(w http.ResponseWriter, r *http.Request) {
+	result, err := a.transactions.List(r.Context(), transactionFilter(r))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "读取账单失败")
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (a *API) createTransaction(w http.ResponseWriter, r *http.Request) {
+	var input transactions.Input
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+		return
+	}
+	item, err := a.transactions.Create(r.Context(), input)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
+}
+
+func (a *API) transactionSummary(w http.ResponseWriter, r *http.Request) {
+	summary, err := a.transactions.Summary(r.Context(), transactionFilter(r))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "读取账单统计失败")
+		return
+	}
+	writeJSON(w, http.StatusOK, summary)
+}
+
+func (a *API) transactionByID(w http.ResponseWriter, r *http.Request, session auth.Session) {
+	id := strings.TrimPrefix(r.URL.Path, "/api/transactions/")
+	if id == "" {
+		writeError(w, http.StatusNotFound, "not_found", "资源不存在")
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		item, err := a.transactions.Get(r.Context(), id)
+		if err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, item)
+	case http.MethodPut:
+		var input transactions.Input
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+			return
+		}
+		item, err := a.transactions.Update(r.Context(), id, input)
+		if err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, item)
+	case http.MethodDelete:
+		if err := a.transactions.Delete(r.Context(), id); err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		clientIP := security.ClientIP(r, a.auth.Config.Security.TrustedProxies)
+		_ = a.audit.Record(r.Context(), audit.Event{
+			EventType:    "delete_transaction",
+			ClientIP:     clientIP,
+			DeviceID:     session.ID,
+			UserAgent:    r.UserAgent(),
+			ResourceType: "transaction",
+			ResourceID:   id,
+			Result:       "success",
+		})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	default:
+		writeError(w, http.StatusNotFound, "not_found", "接口不存在")
+	}
+}
+
+func (a *API) listBudgets(w http.ResponseWriter, r *http.Request) {
+	items, err := a.transactions.ListBudgets(r.Context(), r.URL.Query().Get("month"))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "读取预算失败")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+func (a *API) saveBudget(w http.ResponseWriter, r *http.Request) {
+	var input transactions.BudgetInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+		return
+	}
+	item, err := a.transactions.SaveBudget(r.Context(), input)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+func (a *API) deleteBudget(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimPrefix(r.URL.Path, "/api/budgets/")
+	if id == "" {
+		writeError(w, http.StatusNotFound, "not_found", "资源不存在")
+		return
+	}
+	if err := a.transactions.DeleteBudget(r.Context(), id); err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (a *API) revokeDevice(w http.ResponseWriter, r *http.Request, session auth.Session) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/devices/")
 	if id == "" {
@@ -271,10 +404,28 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, importantdates.ErrValidation):
 		writeError(w, http.StatusBadRequest, "validation_failed", "请求参数不合法")
+	case errors.Is(err, transactions.ErrValidation):
+		writeError(w, http.StatusBadRequest, "validation_failed", "请求参数不合法")
 	case errors.Is(err, sql.ErrNoRows):
 		writeError(w, http.StatusNotFound, "not_found", "资源不存在")
 	default:
 		writeError(w, http.StatusInternalServerError, "internal_error", "服务端错误")
+	}
+}
+
+func transactionFilter(r *http.Request) transactions.Filter {
+	query := r.URL.Query()
+	page, _ := strconv.Atoi(query.Get("page"))
+	pageSize, _ := strconv.Atoi(query.Get("page_size"))
+	return transactions.Filter{
+		From:     query.Get("from"),
+		To:       query.Get("to"),
+		Type:     query.Get("type"),
+		Category: query.Get("category"),
+		Account:  query.Get("account"),
+		Tag:      query.Get("tag"),
+		Page:     page,
+		PageSize: pageSize,
 	}
 }
 
