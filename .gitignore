@@ -5,6 +5,7 @@ web/dist/*
 !web/dist/.keep
 /dist/
 /bin/
+/release-dist/
 /server
 
 # Local runtime state.

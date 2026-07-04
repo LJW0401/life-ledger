@@ -75,3 +75,18 @@
 - **回归测试**：`internal/domain/decisions/decisions_test.go`、`internal/config/config_test.go`。
 - **为什么原测试没覆盖**：测试通过手动设置 `time.Local` 复现本地日期边界，遗漏了“主机时区和应用配置时区不同”的部署场景。
 - **紧急程度**：中
+
+### 快速功能：GitHub CI 和 Release 自动化
+- **类型**：架构洞察
+- **描述**：GitHub Actions 的 tag release 工作流必须先存在于默认分支，之后推送新标签才会触发；release 还需要 `release.md` 中的 `release-version` 和 pushed tag 完全一致。
+- **建议处理方式**：先合并工作流到 `main`，再按 `release.template.md` 更新 `release.md`，最后创建并推送 `v*` 标签；如果要重发同一版本，应删除失败 release 或改用新标签。
+- **紧急程度**：低
+
+### Bug 修复：Playwright install 参数透传
+- **发现于**：`review-notes/code-review-2026-07-05-ci-playwright.md`
+- **现象**：CI 中 `npm exec playwright install --with-deps chromium` 可能把 `--with-deps` 当作 npm 参数处理，干净 runner 上 Chromium 系统依赖安装不稳定。
+- **根因**：`npm exec` 调用缺少 `--` 分隔符，工作流检查没有覆盖这类 shell 参数透传细节。
+- **修复**：CI 改为 `npm --prefix web exec -- playwright install --with-deps chromium`，并新增 `scripts/check-workflows.sh` 持久检查。
+- **回归测试**：`make check-workflows`、`make ci`。
+- **为什么原测试没覆盖**：`actionlint` 只能校验 workflow 语法，不能识别 `npm exec` 与被执行命令参数之间的语义边界。
+- **紧急程度**：中

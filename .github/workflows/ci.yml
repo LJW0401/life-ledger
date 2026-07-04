@@ -1,0 +1,46 @@
+# .github/workflows/ci.yml -- main push and PR quality gate.
+# The full gate lives in Makefile so local checks and GitHub Actions do not drift.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install Playwright browser
+        run: |
+          npm ci --prefix web --no-audit --no-fund
+          npm --prefix web exec -- playwright install --with-deps chromium
+
+      - name: Full CI gate
+        run: make ci
