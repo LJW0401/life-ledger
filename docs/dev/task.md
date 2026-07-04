@@ -1,8 +1,8 @@
 # life-ledger 开发任务计划
 
 > 创建日期：2026-07-04
-> 状态：待审核
-> 版本：v0.1
+> 状态：已审核
+> 版本：v1.0
 > 关联需求文档：`docs/dev/prd.md`
 > 关联架构文档：`docs/dev/sad.md`
 > 关联测试文档：`docs/dev/tpd.md`
@@ -184,6 +184,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 旧文件名、已移除范围和安全约束在文档中表达一致；允许在“排除项、禁止项、ADR 背景”中出现说明性文字。
   2. `git diff --check` 通过。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 **阶段验收标准**：
 
 1. Given 开发者开始编码, When 查阅 `docs/dev/`, Then API、数据模型和部署恢复细节均有对应文档。
@@ -215,6 +219,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 服务启动, When 请求 `/`, Then 返回前端入口或重定向到 `/important-dates`。
   2. 安全门控：`go test ./...`、`npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-1.3 [S] 异常测试 — 工程骨架
 
 - **描述**：覆盖脚手架早期的启动失败和路由异常。
@@ -227,6 +235,21 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. 上述异常场景有自动化覆盖或明确 pending 标记。
   2. 安全门控：`go test ./...` 通过。
+
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
+#### WI-1.3G [集成门控] 工程骨架最小集成
+
+- **描述**：验证脚手架、最小服务启动和早期 E2E 测试可以一起运行。
+- **验收标准**：
+  1. `go test ./... && npm run test:e2e` 通过。
+  2. 失败时阻止继续进入配置和数据库任务。
+- **Notes**：
+  - Pattern：局部门控，控制首个功能测试组的集成风险。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地门控命令。
 
 #### WI-1.4 [M] 实现配置读取与权限检查
 
@@ -247,6 +270,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 合法配置, When 运行 `./life-ledger`, Then 服务监听配置端口。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-1.6 [S] 异常测试 — 配置读取
 
 - **描述**：覆盖配置非法、权限过宽和敏感字段泄露。
@@ -261,6 +288,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部有自动化覆盖。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-1.7 [集成门控] 工程骨架与配置集成
 
 - **描述**：验证脚手架、配置和最小服务启动集成状态。
@@ -268,6 +299,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go vet ./... && go test ./... && npm run typecheck && npm run build` 通过。
   2. 服务默认不监听公网地址。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 #### WI-1.8 [M] 实现 SQLite 初始化和内嵌 migration
 
 - **描述**：实现 SQLite 打开、文件权限、内嵌 migration、`schema_migrations` 和 transaction helper。
@@ -287,6 +322,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 数据库不存在, When 启动服务, Then 数据库文件和 schema 被创建。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-1.10 [S] 异常测试 — SQLite 初始化
 
 - **描述**：覆盖 migration 失败、权限错误和 transaction 回滚。
@@ -300,6 +339,21 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
+
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
+#### WI-1.10G [集成门控] 配置与数据库集成
+
+- **描述**：验证配置读取、文件权限、SQLite 初始化和 migration 可以共同完成启动链路。
+- **验收标准**：
+  1. `go vet ./... && go test ./... && go test -race ./...` 通过。
+  2. 合法配置能创建数据库，非法配置不会创建脏数据库。
+- **Notes**：
+  - Pattern：局部门控，收敛配置和数据库启动路径。
+  - Reference：PRD R1、R2、R15。
+  - Hook point：`internal/config/`、`internal/db/`。
 
 #### WI-1.11 [M] 实现内嵌前端和三页路由壳
 
@@ -320,6 +374,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 用户访问三条路由, When 页面刷新, Then 仍展示对应页面。
   2. 安全门控：`npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-1.13 [S] 异常测试 — 三页路由
 
 - **描述**：覆盖未知 API、未知页面和资源缺失。
@@ -333,6 +391,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...`、`npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-1.14 [集成门控] 运行基础集成
 
 - **描述**：验证阶段 1 全部运行基础可用。
@@ -340,6 +402,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 发布前完整门控除 `npm run lint` 外均已落地并通过；若 lint 脚本已创建则必须通过。
   2. 使用临时配置启动服务后，浏览器能访问三页壳。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 **阶段验收标准**：
 
 1. Given 仓库完成阶段 1, When 运行本地服务, Then 用户可以看到三页空壳。
@@ -371,6 +437,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 用户输入正确凭据, When 登录, Then 进入业务页面。
   2. 安全门控：`npm run test:e2e`、`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-2.3 [S] 异常测试 — 登录和辅助命令
 
 - **描述**：覆盖错误凭据、缺失配置、短密钥和辅助命令失败。
@@ -383,6 +453,21 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
+
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
+#### WI-2.3G [集成门控] 登录退出集成
+
+- **描述**：验证登录、退出、辅助命令和未登录拦截形成可用闭环。
+- **验收标准**：
+  1. `go test ./... && npm run test:e2e` 通过。
+  2. 正确登录可进入页面，错误登录和未登录访问被拒绝。
+- **Notes**：
+  - Pattern：局部门控，先稳定认证入口再扩展设备会话。
+  - Reference：PRD R10、R13。
+  - Hook point：`internal/auth/`、`cmd/server/`。
 
 #### WI-2.4 [M] 实现设备会话和登录失败限速
 
@@ -403,6 +488,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 有效 Cookie, When 访问页面, Then 不要求重新登录。
   2. 安全门控：`npm run test:e2e`、`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-2.6 [S] 异常测试 — 设备会话和限速
 
 - **描述**：覆盖过期、撤销、不存在 token、锁定和重启恢复。
@@ -417,6 +506,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-2.7 [集成门控] 认证基础集成
 
 - **描述**：验证登录、设备、限速和受保护路由已经形成闭环。
@@ -424,6 +517,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && npm run test:e2e` 通过。
   2. 未登录用户无法访问三页和受保护 API。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 #### WI-2.8 [M] 实现 CSRF、CORS、安全响应头和可信反代 IP
 
 - **描述**：实现 CSRF token 获取与校验、基础安全头、禁止跨源 API、可信反代 IP 解析。
@@ -443,6 +540,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 登录态和正确 token, When 发起写请求, Then 请求进入业务 handler。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-2.10 [S] 异常测试 — CSRF、CORS 和可信 IP
 
 - **描述**：覆盖缺失 token、错误 token、跨域请求和伪造代理头。
@@ -456,6 +557,21 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
+
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
+#### WI-2.10G [集成门控] CSRF 与安全头集成
+
+- **描述**：验证 CSRF、CORS、安全响应头和可信反代 IP 解析可以共同保护 API。
+- **验收标准**：
+  1. `go test ./...` 通过。
+  2. 写请求无 token 返回 403，响应不包含 `Access-Control-Allow-Origin: *`。
+- **Notes**：
+  - Pattern：局部门控，收敛请求安全 middleware。
+  - Reference：PRD R14、R17。
+  - Hook point：`internal/security/`、`internal/api/`。
 
 #### WI-2.11 [M] 实现审计事件和日志脱敏
 
@@ -476,6 +592,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 发生安全事件, When 查询审计表, Then 存在脱敏结构化事件。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-2.13 [S] 异常测试 — 审计和脱敏
 
 - **描述**：覆盖数据库不可用前的启动失败、敏感值泄露和删除事件脱敏。
@@ -489,6 +609,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-2.14 [集成门控] 安全底座集成
 
 - **描述**：验证认证、设备、限速、CSRF、安全头、可信 IP 和审计集成状态。
@@ -496,6 +620,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && go test -race ./... && npm run test:e2e` 通过。
   2. 安全回归中认证、CSRF、CORS、响应头、审计、设备撤销和限速全部通过。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 **阶段验收标准**：
 
 1. Given 未登录用户访问业务页面或 API, When 请求到达服务端, Then 被登录页或 401 拦截。
@@ -527,6 +655,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 记录关联标签, When 按标签查询, Then 返回对应记录。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-3.3 [S] 异常测试 — 标签
 
 - **描述**：覆盖空标签、重复标签、非法对象类型和删除关联。
@@ -539,6 +671,21 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
+
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
+#### WI-3.3G [集成门控] 标签服务集成
+
+- **描述**：验证标签字典、对象关联和筛选基础可以被业务模块复用。
+- **验收标准**：
+  1. `go test ./...` 通过。
+  2. 标签创建、重复处理、关联查询和删除关联均通过。
+- **Notes**：
+  - Pattern：局部门控，先稳定跨业务复用能力。
+  - Reference：PRD R9。
+  - Hook point：`internal/domain/tags/`。
 
 #### WI-3.4 [M] 实现重要日期 API 和页面
 
@@ -559,6 +706,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 登录用户打开日期页, When 创建日期记录, Then 列表展示新记录。
   2. 安全门控：`npm run test:e2e`、`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-3.6 [S] 异常测试 — 重要日期
 
 - **描述**：覆盖必填缺失、非法重复规则、未登录、删除不存在记录。
@@ -572,6 +723,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`go test ./... && npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-3.7 [集成门控] 日期与标签切片集成
 
 - **描述**：验证标签和重要日期从数据库到 UI 的闭环。
@@ -579,6 +734,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && npm run typecheck && npm run test:e2e` 通过。
   2. 删除日期记录写入审计事件。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 **阶段验收标准**：
 
 1. Given 登录用户访问日期页, When 完成新增、编辑、删除, Then SQLite、API 和 UI 状态一致。
@@ -610,6 +769,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 合法账单, When 保存, Then 列表和详情可读取。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-4.3 [S] 异常测试 — 账单 API
 
 - **描述**：覆盖金额、枚举、缺字段、分页和认证异常。
@@ -623,6 +786,21 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
+
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
+#### WI-4.3G [集成门控] 账单 API 集成
+
+- **描述**：验证账单 CRUD、筛选、分页、认证和审计基础集成状态。
+- **验收标准**：
+  1. `go test ./... && go test -race ./...` 通过。
+  2. 账单新增、筛选、删除和未登录拦截均通过。
+- **Notes**：
+  - Pattern：局部门控，先稳定账单 API 再接预算统计。
+  - Reference：PRD R5。
+  - Hook point：`internal/domain/transactions/`、`internal/api/`。
 
 #### WI-4.4 [M] 实现预算和基础统计
 
@@ -643,6 +821,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 月份分类预算和支出账单, When 查询预算, Then 返回已用、剩余、比例。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-4.6 [S] 异常测试 — 预算和统计
 
 - **描述**：覆盖非法预算金额、收入账单、计入预算否、筛选边界。
@@ -657,6 +839,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-4.7 [集成门控] 账单预算 API 集成
 
 - **描述**：验证账单、预算、统计和审计集成状态。
@@ -664,6 +850,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && go test -race ./...` 通过。
   2. 删除账单写入审计事件。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 #### WI-4.8 [M] 实现账单页前端
 
 - **描述**：实现账单列表、表单、筛选、统计卡片、预算使用展示。
@@ -683,6 +873,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 登录用户创建账单, When 返回列表, Then 统计卡片同步更新。
   2. 安全门控：`npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-4.10 [S] 异常测试 — 账单页
 
 - **描述**：覆盖表单校验、API 错误提示和无数据状态。
@@ -697,6 +891,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-4.11 [S] 性能测试 — 账单和统计
 
 - **描述**：验证 5000 条以内账单列表和统计满足 P95 小于 300ms 的目标。
@@ -704,6 +902,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 测试数据库有 5000 条账单, When 请求常规列表和统计 API, Then P95 小于 300ms。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：纯文档或发布收口任务，按文档一致性门控验收。
+  - Reference：`docs/dev/prd.md`、`docs/dev/sad.md`、`docs/dev/tpd.md`。
+  - Hook point：`docs/dev/` 文档集。
 #### WI-4.12 [集成门控] 账单页完整切片
 
 - **描述**：验证账单、预算、统计从 UI 到 SQLite 全链路。
@@ -711,6 +913,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && npm run typecheck && npm run test:e2e` 通过。
   2. 账单核心路径满足 TPD 发布准入。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 **阶段验收标准**：
 
 1. Given 登录用户使用账单页, When 完成账单和预算操作, Then 统计与预算实时反映最新数据。
@@ -742,6 +948,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 用户请求模板, When 打开文件, Then 表头和字段顺序正确。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-5.3 [S] 异常测试 — Excel 模板和导出
 
 - **描述**：覆盖未登录、空数据、非法筛选和文件生成错误。
@@ -755,6 +965,21 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
+
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
+#### WI-5.3G [集成门控] Excel 导出集成
+
+- **描述**：验证模板下载、导出和认证保护在账单数据上可用。
+- **验收标准**：
+  1. `go test ./...` 通过。
+  2. 模板和导出文件均可打开，未登录导出被拒绝。
+- **Notes**：
+  - Pattern：局部门控，先稳定只读 Excel 能力。
+  - Reference：PRD R6、TPD 第 7 章。
+  - Hook point：`internal/excel/`、`internal/api/`。
 
 #### WI-5.4 [M] 实现 Excel 导入校验和事务写入
 
@@ -775,6 +1000,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 合法导入文件, When 导入, Then 账单全部写入且审计记录成功事件。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-5.6 [S] 异常测试 — Excel 导入
 
 - **描述**：覆盖格式、大小、行数、表头、必填、枚举、金额和回滚。
@@ -789,6 +1018,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-5.7 [集成门控] Excel 后端集成
 
 - **描述**：验证 Excel 模板、导出、导入、审计和账单服务集成。
@@ -796,6 +1029,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && go test -race ./...` 通过。
   2. 导入失败不产生部分写入。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 #### WI-5.8 [M] 实现账单页 Excel UI
 
 - **描述**：在账单页接入模板下载、导入上传、错误明细展示、导出按钮。
@@ -815,6 +1052,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 登录用户上传合法文件, When 导入成功, Then 账单列表出现导入记录。
   2. 安全门控：`npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-5.10 [S] 异常测试 — Excel UI
 
 - **描述**：覆盖非法文件、错误行展示、超大文件和登录过期。
@@ -829,6 +1070,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-5.11 [集成门控] Excel 端到端集成
 
 - **描述**：验证账单页 Excel 从 UI 到 SQLite 的完整链路。
@@ -836,6 +1081,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && npm run test:e2e` 通过。
   2. Excel 导入失败场景验证不能产生部分写入。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 **阶段验收标准**：
 
 1. Given 用户上传合法 Excel, When 确认导入, Then 所有记录一次性写入数据库。
@@ -867,6 +1116,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 决策设置复盘日期且日期到达, When 查询列表, Then 出现在待复盘分组。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-6.3 [S] 异常测试 — 决策 API
 
 - **描述**：覆盖缺字段、非法状态、候选方案格式错误和未登录。
@@ -880,6 +1133,21 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - **验收标准**：
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
+
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
+#### WI-6.3G [集成门控] 决策 API 集成
+
+- **描述**：验证决策 CRUD、候选方案、状态分组、标签和审计基础集成。
+- **验收标准**：
+  1. `go test ./...` 通过。
+  2. 决策创建、状态查询、删除审计和未登录拦截均通过。
+- **Notes**：
+  - Pattern：局部门控，先稳定决策后端再接页面。
+  - Reference：PRD R7。
+  - Hook point：`internal/domain/decisions/`、`internal/api/`。
 
 #### WI-6.4 [M] 实现决策页前端
 
@@ -900,6 +1168,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 登录用户创建决策并完成复盘, When 保存, Then 记录进入已归档分组。
   2. 安全门控：`npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-6.6 [S] 异常测试 — 决策页
 
 - **描述**：覆盖表单缺失、API 错误、登录过期和状态切换异常。
@@ -914,6 +1186,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`npm run test:e2e` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-6.7 [集成门控] 决策切片集成
 
 - **描述**：验证决策 API、UI、标签和审计集成。
@@ -921,6 +1197,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && npm run test:e2e` 通过。
   2. 删除决策写入审计事件。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 #### WI-6.8 [M] 实现备份命令和部署冒烟脚本
 
 - **描述**：实现 `./life-ledger backup`，生成包含 SQLite、`config.toml`、`backup-meta.json` 的备份包，并补部署冒烟脚本。
@@ -940,6 +1220,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 已有数据库, When 执行 backup, Then 备份包包含 DB、配置和元数据。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-6.10 [S] 异常测试 — 备份和部署
 
 - **描述**：覆盖无法读取数据库、无法读取配置、权限错误和恢复权限。
@@ -953,6 +1237,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 异常场景全部通过。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-6.11 [集成门控] 决策、备份和部署集成
 
 - **描述**：验证决策功能和备份恢复不会互相破坏。
@@ -960,6 +1248,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && npm run test:e2e && go build ./cmd/server` 通过。
   2. 恢复演练后日期、账单、决策数据均可读。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 **阶段验收标准**：
 
 1. Given 用户使用决策页, When 完成决策记录和复盘归档, Then 数据可持久化并可恢复。
@@ -997,6 +1289,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 所有场景通过。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-7.3 [集成门控] 安全发布门控
 
 - **描述**：确认安全测试结果达到发布准入。
@@ -1004,7 +1300,11 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. `go test ./... && go test -race ./... && npm run test:e2e` 通过。
   2. 日志和审计抽样检查不包含敏感值。
 
-#### WI-7.4 [M] 性能和数据量回归
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
+#### WI-7.4 [M] 性能测试 — 数据量回归
 
 - **描述**：用 5000 条测试数据验证账单列表、统计、预算和 Excel 导入性能。
 - **验收标准**：
@@ -1029,6 +1329,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 所有场景通过。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-7.6 [集成门控] 性能发布门控
 
 - **描述**：确认性能和数据量测试达到发布准入。
@@ -1036,6 +1340,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 性能回归报告记录关键接口结果。
   2. `go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 #### WI-7.7 [M] 文档和发布包收口
 
 - **描述**：更新 README、部署文档、配置示例、恢复说明和发布检查清单。
@@ -1055,6 +1363,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. Given 构建产物和配置文件, When 在临时目录启动, Then 浏览器可访问登录页。
   2. 安全门控：`go build ./cmd/server` 通过。
 
+- **Notes**：
+  - Pattern：端到端正常路径验证，断言用户可观测结果。
+  - Reference：`docs/dev/tpd.md` 对应 Smoke 测试范围。
+  - Hook point：E2E/API 测试套件。
 #### WI-7.9 [S] 异常测试 — 发布包
 
 - **描述**：覆盖缺少配置、权限错误、缺少数据目录和端口占用。
@@ -1069,6 +1381,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   1. 所有场景通过。
   2. 安全门控：`go test ./...` 通过。
 
+- **Notes**：
+  - Pattern：从系统边界构造异常，不修改被测代码。
+  - Reference：`docs/dev/tpd.md` 异常/边界测试要求。
+  - Hook point：API/E2E/CLI 测试夹具。
 #### WI-7.10 [集成门控] 发布准入
 
 - **描述**：执行发布前完整门控，确认首版可交付。
@@ -1077,6 +1393,10 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   2. `npm run test:e2e` 通过。
   3. 备份恢复完成一次手工演练。
 
+- **Notes**：
+  - Pattern：阶段性汇合检查，失败则不进入后续任务。
+  - Reference：本文件第 4 章串行/并行执行拆分。
+  - Hook point：CI 门控/本地完整门控命令。
 **阶段验收标准**：
 
 1. Given 发布候选版本, When 执行完整门控, Then 所有测试和构建通过。
@@ -1093,6 +1413,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 | SQLite 查询性能退化 | 账单页等待明显 | 中 | 阶段 4 加索引和分页，阶段 7 做 5000 条性能回归。 |
 | 部署恢复文档与实现不一致 | 云服务器恢复失败 | 中 | 阶段 6 和 7 均安排备份恢复演练。 |
 | 测试门控尚未落地 | 任务验收不可执行 | 中 | 阶段 1 建立脚本后，后续所有代码任务必须执行门控。 |
+| 并行开发修改同一契约 | API、数据模型或测试夹具冲突 | 中 | 并行组进入汇合门控前先做文档和接口一致性检查。 |
 
 ## 7. 开发规范
 
@@ -1127,11 +1448,17 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 | 阶段 | S | M | Smoke 测试 | 异常测试 | 集成门控 | 总计 |
 |------|---|---|------------|----------|----------|------|
 | 阶段 0 | 3 | 0 | 0 | 0 | 1 | 4 |
-| 阶段 1 | 8 | 4 | 3 | 3 | 2 | 14 |
-| 阶段 2 | 8 | 4 | 4 | 4 | 2 | 14 |
-| 阶段 3 | 4 | 2 | 2 | 2 | 1 | 7 |
-| 阶段 4 | 7 | 3 | 3 | 3 | 2 | 12 |
-| 阶段 5 | 6 | 3 | 3 | 3 | 2 | 11 |
-| 阶段 6 | 6 | 3 | 3 | 3 | 2 | 11 |
+| 阶段 1 | 8 | 4 | 3 | 3 | 4 | 16 |
+| 阶段 2 | 8 | 4 | 4 | 4 | 4 | 16 |
+| 阶段 3 | 4 | 2 | 2 | 2 | 2 | 8 |
+| 阶段 4 | 7 | 3 | 3 | 3 | 3 | 13 |
+| 阶段 5 | 6 | 3 | 3 | 3 | 3 | 12 |
+| 阶段 6 | 6 | 3 | 3 | 3 | 3 | 12 |
 | 阶段 7 | 4 | 3 | 1 | 3 | 3 | 10 |
-| **合计** | **46** | **22** | **19** | **21** | **15** | **83** |
+| **合计** | **46** | **22** | **19** | **21** | **23** | **91** |
+
+## 9. 审核记录
+
+| 日期 | 审核人 | 评分 | 结果 | 备注 |
+|------|--------|------|------|------|
+| 2026-07-04 | AI Assistant | 92/100 | 通过 | 已补齐局部门控、测试/门控 Notes、发布性能测试命名和并行开发风险。 |
