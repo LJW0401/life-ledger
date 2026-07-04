@@ -13,6 +13,7 @@ import (
 	"life-ledger/internal/audit"
 	"life-ledger/internal/auth"
 	"life-ledger/internal/config"
+	"life-ledger/internal/domain/decisions"
 	"life-ledger/internal/domain/importantdates"
 	"life-ledger/internal/domain/tags"
 	"life-ledger/internal/domain/transactions"
@@ -24,6 +25,7 @@ type API struct {
 	auth           auth.Service
 	audit          audit.Recorder
 	importantDates importantdates.Service
+	decisions      decisions.Service
 	transactions   transactions.Service
 	tags           tags.Store
 }
@@ -39,6 +41,7 @@ func New(cfg config.Config, conn *sql.DB) http.Handler {
 		},
 		audit:          recorder,
 		importantDates: importantdates.Service{DB: conn, Tags: tagStore},
+		decisions:      decisions.Service{DB: conn, Tags: tagStore},
 		transactions:   transactions.Service{DB: conn, Tags: tagStore},
 		tags:           tagStore,
 	}
@@ -77,6 +80,12 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.createImportantDate(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/important-dates/"):
 		a.importantDateByID(w, r, session)
+	case r.URL.Path == "/api/decisions" && r.Method == http.MethodGet:
+		a.listDecisions(w, r)
+	case r.URL.Path == "/api/decisions" && r.Method == http.MethodPost:
+		a.createDecision(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/decisions/"):
+		a.decisionByID(w, r, session)
 	case r.URL.Path == "/api/tags" && r.Method == http.MethodGet:
 		a.listTags(w, r)
 	case r.URL.Path == "/api/transactions" && r.Method == http.MethodGet:
@@ -249,6 +258,76 @@ func (a *API) listTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+func (a *API) listDecisions(w http.ResponseWriter, r *http.Request) {
+	items, err := a.decisions.List(r.Context(), r.URL.Query().Get("status"))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "读取决策失败")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+func (a *API) createDecision(w http.ResponseWriter, r *http.Request) {
+	var input decisions.Input
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+		return
+	}
+	item, err := a.decisions.Create(r.Context(), input)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
+}
+
+func (a *API) decisionByID(w http.ResponseWriter, r *http.Request, session auth.Session) {
+	id := strings.TrimPrefix(r.URL.Path, "/api/decisions/")
+	if id == "" {
+		writeError(w, http.StatusNotFound, "not_found", "资源不存在")
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		item, err := a.decisions.Get(r.Context(), id)
+		if err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, item)
+	case http.MethodPut:
+		var input decisions.Input
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+			return
+		}
+		item, err := a.decisions.Update(r.Context(), id, input)
+		if err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, item)
+	case http.MethodDelete:
+		if err := a.decisions.Delete(r.Context(), id); err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		clientIP := security.ClientIP(r, a.auth.Config.Security.TrustedProxies)
+		_ = a.audit.Record(r.Context(), audit.Event{
+			EventType:    "delete_decision",
+			ClientIP:     clientIP,
+			DeviceID:     session.ID,
+			UserAgent:    r.UserAgent(),
+			ResourceType: "decision",
+			ResourceID:   id,
+			Result:       "success",
+		})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	default:
+		writeError(w, http.StatusNotFound, "not_found", "接口不存在")
+	}
 }
 
 func (a *API) listTransactions(w http.ResponseWriter, r *http.Request) {
@@ -503,6 +582,8 @@ func (a *API) recordExcelAudit(r *http.Request, session auth.Session, result str
 func writeDomainError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, importantdates.ErrValidation):
+		writeError(w, http.StatusBadRequest, "validation_failed", "请求参数不合法")
+	case errors.Is(err, decisions.ErrValidation):
 		writeError(w, http.StatusBadRequest, "validation_failed", "请求参数不合法")
 	case errors.Is(err, transactions.ErrValidation):
 		writeError(w, http.StatusBadRequest, "validation_failed", "请求参数不合法")

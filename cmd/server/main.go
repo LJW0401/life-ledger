@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"life-ledger/internal/app"
+	"life-ledger/internal/backup"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -33,6 +34,14 @@ func run(args []string) error {
 			return hashPassword(os.Stdin, os.Stdout)
 		case "generate-secret":
 			return generateSecret(os.Stdout)
+		case "backup":
+			flags := flag.NewFlagSet("life-ledger backup", flag.ContinueOnError)
+			flags.SetOutput(os.Stderr)
+			configPath := flags.String("config", "config.toml", "path to config.toml")
+			if err := flags.Parse(args[1:]); err != nil {
+				return err
+			}
+			return backup.Run(*configPath)
 		}
 	}
 

@@ -1204,6 +1204,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-6.1 [M] 实现决策 API 和数据层
 
+- **状态**：已完成
 - **描述**：实现决策 CRUD、候选方案结构化保存、状态分组、复盘归档和标签关联。
 - **验收标准**：
   1. 支持进行中、待复盘、已归档状态。
@@ -1216,6 +1217,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-6.2 [S] Smoke 测试 — 决策 API
 
+- **状态**：已完成
 - **描述**：验证决策新增、候选方案、状态分组、复盘归档。
 - **验收标准**：
   1. Given 决策设置复盘日期且日期到达, When 查询列表, Then 出现在待复盘分组。
@@ -1227,6 +1229,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-6.3 [S] 异常测试 — 决策 API
 
+- **状态**：已完成
 - **描述**：覆盖缺字段、非法状态、候选方案格式错误和未登录。
 - **覆盖场景清单**：
   - [x] 非法输入：标题缺失、非法状态、候选方案字段缺失。
@@ -1245,6 +1248,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-6.3G [集成门控] 决策 API 集成
 
+- **状态**：已完成
 - **描述**：验证决策 CRUD、候选方案、状态分组、标签和审计基础集成。
 - **验收标准**：
   1. `go test ./...` 通过。
@@ -1256,6 +1260,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-6.4 [M] 实现决策页前端
 
+- **状态**：已完成
 - **描述**：实现决策列表、详情、候选方案编辑、状态分组、复盘归档。
 - **验收标准**：
   1. 用户可以在决策页完成新增、编辑、复盘和归档。
@@ -1268,6 +1273,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-6.5 [S] Smoke 测试 — 决策页
 
+- **状态**：已完成
 - **描述**：用 E2E 验证决策创建、候选方案、待复盘和归档。
 - **验收标准**：
   1. Given 登录用户创建决策并完成复盘, When 保存, Then 记录进入已归档分组。
@@ -1279,6 +1285,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-6.6 [S] 异常测试 — 决策页
 
+- **状态**：已完成
 - **描述**：覆盖表单缺失、API 错误、登录过期和状态切换异常。
 - **覆盖场景清单**：
   - [x] 非法输入：标题缺失、候选方案缺字段。
@@ -1297,6 +1304,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-6.7 [集成门控] 决策切片集成
 
+- **状态**：已完成
 - **描述**：验证决策 API、UI、标签和审计集成。
 - **验收标准**：
   1. `go test ./... && npm run test:e2e` 通过。
@@ -1308,6 +1316,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：CI 门控/本地完整门控命令。
 #### WI-6.8 [M] 实现备份命令和部署冒烟脚本
 
+- **状态**：已完成
 - **描述**：实现 `./life-ledger backup`，生成包含 SQLite、`config.toml`、`backup-meta.json` 的备份包，并补部署冒烟脚本。
 - **验收标准**：
   1. 备份成功生成完整备份包。
@@ -1320,6 +1329,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-6.9 [S] Smoke 测试 — 备份和恢复
 
+- **状态**：已完成
 - **描述**：验证备份包内容和按文档恢复后的数据可读。
 - **验收标准**：
   1. Given 已有数据库, When 执行 backup, Then 备份包包含 DB、配置和元数据。
@@ -1331,6 +1341,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-6.10 [S] 异常测试 — 备份和部署
 
+- **状态**：已完成
 - **描述**：覆盖无法读取数据库、无法读取配置、权限错误和恢复权限。
 - **覆盖场景清单**：
   - [x] 失败依赖：数据库文件不可读、配置文件不可读。
@@ -1348,6 +1359,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-6.11 [集成门控] 决策、备份和部署集成
 
+- **状态**：已完成
 - **描述**：验证决策功能和备份恢复不会互相破坏。
 - **验收标准**：
   1. `go test ./... && npm run test:e2e && go build ./cmd/server` 通过。
@@ -1361,7 +1373,13 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 1. Given 用户使用决策页, When 完成决策记录和复盘归档, Then 数据可持久化并可恢复。
 2. Given 用户执行备份和恢复, When 重新启动服务, Then 业务数据和登录配置按文档恢复。
-3. 阶段状态：未开始。
+3. 阶段状态：已完成。
+
+**完成日期**：2026-07-04
+**验收结果**：通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**集成门控**：WI-6.3G、WI-6.7、WI-6.11 通过
+**备注**：已实现决策 CRUD、候选方案、状态分组、复盘归档、标签关联、删除审计、备份命令和备份包元数据校验。
 
 ---
 

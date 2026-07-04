@@ -47,6 +47,17 @@ type Budget = {
   remaining: string
   overspent: boolean
 }
+type Decision = {
+  id: string
+  title: string
+  background: string
+  final_choice: string
+  status: string
+  review_date: string
+  review_note: string
+  tags: string[]
+  options: Array<{ name: string; pros: string; cons: string; note: string }>
+}
 
 const routes: Array<{
   path: Route
@@ -94,6 +105,8 @@ export function App() {
   const [summary, setSummary] = useState<Summary>({ income: '0.00', expense: '0.00', balance: '0.00' })
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [transactionError, setTransactionError] = useState('')
+  const [decisions, setDecisions] = useState<Decision[]>([])
+  const [decisionError, setDecisionError] = useState('')
   const current = useMemo(() => {
     return routes.find((route) => route.path === currentPath) ?? routes[0]
   }, [currentPath])
@@ -118,6 +131,7 @@ export function App() {
     setAuthStatus('authenticated')
     void loadImportantDates()
     void loadTransactions()
+    void loadDecisions()
   }
 
   async function login(event: FormEvent<HTMLFormElement>) {
@@ -142,6 +156,7 @@ export function App() {
     setAuthStatus('authenticated')
     await loadImportantDates()
     await loadTransactions()
+    await loadDecisions()
   }
 
   async function logout() {
@@ -342,6 +357,92 @@ export function App() {
     await loadTransactions()
   }
 
+  async function loadDecisions() {
+    const response = await fetch('/api/decisions')
+    if (!response.ok) {
+      return
+    }
+    const payload = (await response.json()) as { items: Decision[] }
+    setDecisions(payload.items ?? [])
+  }
+
+  async function createDecision(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
+    setDecisionError('')
+    const tags = String(form.get('tags') ?? '')
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+    const response = await fetch('/api/decisions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({
+        title: form.get('title'),
+        background: form.get('background'),
+        final_choice: form.get('final_choice'),
+        status: form.get('status'),
+        review_date: form.get('review_date'),
+        review_note: form.get('review_note'),
+        options: [
+          {
+            name: form.get('option_name'),
+            pros: form.get('option_pros'),
+            cons: form.get('option_cons'),
+            note: ''
+          }
+        ].filter((option) => String(option.name ?? '').trim() !== ''),
+        tags
+      })
+    })
+    if (!response.ok) {
+      setDecisionError('保存失败')
+      return
+    }
+    formElement.reset()
+    await loadDecisions()
+  }
+
+  async function archiveDecision(item: Decision) {
+    setDecisionError('')
+    const response = await fetch(`/api/decisions/${item.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({
+        title: item.title,
+        background: item.background,
+        final_choice: item.final_choice,
+        status: '已归档',
+        review_date: item.review_date,
+        review_note: item.review_note || '已完成复盘',
+        options: item.options,
+        tags: item.tags
+      })
+    })
+    if (!response.ok) {
+      setDecisionError('归档失败')
+      return
+    }
+    await loadDecisions()
+  }
+
+  async function deleteDecision(id: string) {
+    const response = await fetch(`/api/decisions/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': csrfToken }
+    })
+    if (response.ok) {
+      await loadDecisions()
+    }
+  }
+
   if (authStatus === 'checking') {
     return <main className="login-screen" aria-label="加载中" />
   }
@@ -448,6 +549,14 @@ export function App() {
             }
             onImport={importTransactions}
           />
+        ) : current.path === '/decisions' ? (
+          <DecisionsPage
+            items={decisions}
+            error={decisionError}
+            onCreate={createDecision}
+            onArchive={archiveDecision}
+            onDelete={deleteDecision}
+          />
         ) : (
           <section className="list" aria-label={`${current.title}列表`}>
             {current.rows.map((row) => (
@@ -460,6 +569,102 @@ export function App() {
         )}
       </section>
     </main>
+  )
+}
+
+function DecisionsPage({
+  items,
+  error,
+  onCreate,
+  onArchive,
+  onDelete
+}: {
+  items: Decision[]
+  error: string
+  onCreate: (event: FormEvent<HTMLFormElement>) => void
+  onArchive: (item: Decision) => void
+  onDelete: (id: string) => void
+}) {
+  const groups = ['进行中', '待复盘', '已归档'].map((status) => ({
+    status,
+    items: items.filter((item) => item.status === status)
+  }))
+  return (
+    <section className="date-layout">
+      <form className="date-form" aria-label="决策表单" onSubmit={onCreate}>
+        <label>
+          标题
+          <input name="title" />
+        </label>
+        <label>
+          状态
+          <select name="status" defaultValue="进行中">
+            <option>进行中</option>
+            <option>待复盘</option>
+            <option>已归档</option>
+          </select>
+        </label>
+        <label>
+          复盘日期
+          <input name="review_date" type="date" />
+        </label>
+        <label>
+          背景
+          <input name="background" />
+        </label>
+        <label>
+          最终选择
+          <input name="final_choice" />
+        </label>
+        <label>
+          复盘内容
+          <input name="review_note" />
+        </label>
+        <label>
+          方案名称
+          <input name="option_name" />
+        </label>
+        <label>
+          优点
+          <input name="option_pros" />
+        </label>
+        <label>
+          缺点
+          <input name="option_cons" />
+        </label>
+        <label>
+          标签
+          <input name="tags" />
+        </label>
+        {error ? <p className="error">{error}</p> : null}
+        <button type="submit">保存决策</button>
+      </form>
+      <section className="list" aria-label="决策列表">
+        {items.length === 0 ? <p className="empty">暂无记录</p> : null}
+        {groups.map((group) => (
+          <section key={group.status} aria-label={`${group.status}决策`}>
+            <h3>{group.status}</h3>
+            {group.items.map((item) => (
+              <article className="item" key={item.id}>
+                <span>
+                  {item.title}
+                  {item.options.length > 0 ? ` · ${item.options[0].name}` : ''}
+                  {item.tags.length > 0 ? ` · ${item.tags.join(', ')}` : ''}
+                </span>
+                {item.status !== '已归档' ? (
+                  <button type="button" onClick={() => onArchive(item)}>
+                    复盘归档
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => onDelete(item.id)}>
+                  删除
+                </button>
+              </article>
+            ))}
+          </section>
+        ))}
+      </section>
+    </section>
   )
 }
 

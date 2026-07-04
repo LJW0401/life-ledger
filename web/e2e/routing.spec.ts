@@ -104,6 +104,47 @@ test('transactions update summary and budget usage', async ({ page }) => {
   expect((await budgetResponse).status()).toBe(200)
   await expect(page.getByLabel('预算列表')).toContainText('已用 25.50 / 100.00')
 
-  await page.getByRole('button', { name: '删除' }).click()
+  const deleteTransactionResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes('/api/transactions/') && response.request().method() === 'DELETE'
+  )
+  await page.getByLabel('账单列表').getByRole('button', { name: '删除' }).click()
+  expect((await deleteTransactionResponse).status()).toBe(200)
   await expect(page.getByLabel('账单列表')).not.toContainText('餐饮')
+})
+
+test('decisions can be created and deleted', async ({ page }) => {
+  await page.goto('/decisions')
+  await login(page, '决策记录')
+  const decisionForm = page.getByLabel('决策表单')
+  await decisionForm.getByLabel('标题').fill('是否搬家自动化')
+  await decisionForm.getByLabel('状态').selectOption('进行中')
+  await decisionForm.getByLabel('复盘日期').fill('2020-01-01')
+  await decisionForm.getByLabel('背景').fill('通勤时间过长')
+  await decisionForm.getByLabel('最终选择').fill('搬近公司')
+  await decisionForm.getByLabel('方案名称').fill('搬近公司')
+  await decisionForm.getByLabel('优点').fill('节省通勤')
+  await decisionForm.getByLabel('缺点').fill('租金更高')
+  await decisionForm.getByLabel('标签').fill('生活')
+  const createResponse = page.waitForResponse(
+    (response) => response.url().endsWith('/api/decisions') && response.request().method() === 'POST'
+  )
+  await page.getByRole('button', { name: '保存决策' }).click()
+  expect((await createResponse).status()).toBe(201)
+  await expect(page.getByLabel('决策列表')).toContainText('是否搬家自动化')
+  await expect(page.getByLabel('待复盘决策')).toContainText('是否搬家自动化')
+  await expect(page.getByLabel('决策列表')).toContainText('搬近公司')
+  await expect(page.getByLabel('决策列表')).toContainText('生活')
+  const archiveResponse = page.waitForResponse(
+    (response) => response.url().includes('/api/decisions/') && response.request().method() === 'PUT'
+  )
+  await page.getByLabel('待复盘决策').getByRole('button', { name: '复盘归档' }).click()
+  expect((await archiveResponse).status()).toBe(200)
+  await expect(page.getByLabel('已归档决策')).toContainText('是否搬家自动化')
+  const deleteDecisionResponse = page.waitForResponse(
+    (response) => response.url().includes('/api/decisions/') && response.request().method() === 'DELETE'
+  )
+  await page.getByLabel('已归档决策').getByRole('button', { name: '删除' }).click()
+  expect((await deleteDecisionResponse).status()).toBe(200)
+  await expect(page.getByLabel('决策列表')).not.toContainText('是否搬家自动化')
 })

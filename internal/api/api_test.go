@@ -226,6 +226,40 @@ func TestTransactionExcelTemplateImportExport(t *testing.T) {
 	}
 }
 
+func TestDecisionCRUDStatusAndAudit(t *testing.T) {
+	handler, conn := testAPI(t)
+	defer conn.Close()
+	cookie, csrf := loginForTest(t, handler)
+
+	create := requestWithHeaders(t, handler, http.MethodPost, "/api/decisions", `{"title":"是否搬家","background":"通勤太久","status":"进行中","review_date":"2020-01-01","options":[{"name":"搬近公司","pros":"省时间","cons":"租金高"}],"tags":["生活"]}`, []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if create.Code != http.StatusCreated {
+		t.Fatalf("create decision status = %d body = %s", create.Code, create.Body.String())
+	}
+	id := jsonString(t, create.Body.Bytes(), "id")
+
+	list := request(t, handler, http.MethodGet, "/api/decisions?status=待复盘", "", []*http.Cookie{cookie})
+	if list.Code != http.StatusOK || !bytes.Contains(list.Body.Bytes(), []byte("是否搬家")) {
+		t.Fatalf("decision list status = %d body = %s", list.Code, list.Body.String())
+	}
+
+	update := requestWithHeaders(t, handler, http.MethodPut, "/api/decisions/"+id, `{"title":"是否搬家","status":"已归档","review_note":"决定暂缓","options":[{"name":"暂缓","pros":"省钱","cons":"通勤久"}]}`, []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if update.Code != http.StatusOK || !bytes.Contains(update.Body.Bytes(), []byte("已归档")) {
+		t.Fatalf("update decision status = %d body = %s", update.Code, update.Body.String())
+	}
+
+	deleted := requestWithHeaders(t, handler, http.MethodDelete, "/api/decisions/"+id, "", []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if deleted.Code != http.StatusOK {
+		t.Fatalf("delete decision status = %d body = %s", deleted.Code, deleted.Body.String())
+	}
+	var auditCount int
+	if err := conn.QueryRow(`SELECT COUNT(1) FROM audit_events WHERE event_type = 'delete_decision' AND resource_id = ?`, id).Scan(&auditCount); err != nil {
+		t.Fatal(err)
+	}
+	if auditCount != 1 {
+		t.Fatalf("expected decision delete audit, got %d", auditCount)
+	}
+}
+
 func testAPI(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 	dir := t.TempDir()
