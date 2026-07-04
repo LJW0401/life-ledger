@@ -215,12 +215,15 @@ func validate(input Input) error {
 }
 
 func effectiveStatus(item Decision) string {
+	return effectiveStatusAt(item, time.Now())
+}
+
+func effectiveStatusAt(item Decision, now time.Time) string {
 	if item.Status == "已归档" {
 		return item.Status
 	}
 	if item.ReviewDate != "" {
-		reviewDate, err := time.Parse("2006-01-02", item.ReviewDate)
-		if err == nil && !reviewDate.After(time.Now()) {
+		if _, err := time.Parse("2006-01-02", item.ReviewDate); err == nil && item.ReviewDate <= now.In(time.Local).Format("2006-01-02") {
 			return "待复盘"
 		}
 	}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"mime/multipart"
@@ -12,6 +13,8 @@ import (
 
 	"life-ledger/internal/config"
 	"life-ledger/internal/db"
+	"life-ledger/internal/domain/tags"
+	transactionspkg "life-ledger/internal/domain/transactions"
 	excelpkg "life-ledger/internal/excel"
 
 	"github.com/xuri/excelize/v2"
@@ -193,6 +196,25 @@ func TestTransactionsBudgetsSummaryAndAudit(t *testing.T) {
 	defer conn.Close()
 	cookie, csrf := loginForTest(t, handler)
 
+	for _, tc := range []struct {
+		name string
+		body string
+	}{
+		{
+			name: "missing include_income",
+			body: `{"date":"2026-07-04","time":"08:30","type":"支出","amount":"25.50","category":"餐饮","include_budget":true,"ledger":"默认账本"}`,
+		},
+		{
+			name: "missing include_budget",
+			body: `{"date":"2026-07-04","time":"08:30","type":"支出","amount":"25.50","category":"餐饮","include_income":true,"ledger":"默认账本"}`,
+		},
+	} {
+		response := requestWithHeaders(t, handler, http.MethodPost, "/api/transactions", tc.body, []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("%s status = %d body = %s", tc.name, response.Code, response.Body.String())
+		}
+	}
+
 	invalid := requestWithHeaders(t, handler, http.MethodPost, "/api/transactions", `{"date":"2026-07-04","time":"08:30","type":"支出","amount":"0","category":"餐饮","include_income":true,"include_budget":true,"ledger":"默认账本"}`, []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
 	if invalid.Code != http.StatusBadRequest {
 		t.Fatalf("invalid transaction status = %d", invalid.Code)
@@ -265,6 +287,47 @@ func TestTransactionExcelTemplateImportExport(t *testing.T) {
 	exported := request(t, handler, http.MethodGet, "/api/transactions/export.xlsx", "", []*http.Cookie{cookie})
 	if exported.Code != http.StatusOK || exported.Body.Len() == 0 {
 		t.Fatalf("export status = %d len = %d", exported.Code, exported.Body.Len())
+	}
+}
+
+func TestTransactionExportIncludesAllFilteredRows(t *testing.T) {
+	handler, conn := testAPI(t)
+	defer conn.Close()
+	cookie, _ := loginForTest(t, handler)
+
+	service := transactionspkg.Service{DB: conn, Tags: tags.Store{DB: conn}}
+	inputs := make([]transactionspkg.Input, 0, 250)
+	for range 250 {
+		inputs = append(inputs, transactionspkg.Input{
+			Date:          "2026-07-04",
+			Time:          "08:30",
+			Type:          "支出",
+			Amount:        "1.00",
+			Category:      "导出回归",
+			IncludeIncome: true,
+			IncludeBudget: true,
+			Ledger:        "默认账本",
+		})
+	}
+	if err := service.CreateMany(context.Background(), inputs); err != nil {
+		t.Fatal(err)
+	}
+
+	exported := request(t, handler, http.MethodGet, "/api/transactions/export.xlsx?category=导出回归", "", []*http.Cookie{cookie})
+	if exported.Code != http.StatusOK {
+		t.Fatalf("export status = %d body = %s", exported.Code, exported.Body.String())
+	}
+	file, err := excelize.OpenReader(bytes.NewReader(exported.Body.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	rows, err := file.GetRows(file.GetSheetName(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(rows) - 1; got != len(inputs) {
+		t.Fatalf("exported rows = %d, want %d", got, len(inputs))
 	}
 }
 

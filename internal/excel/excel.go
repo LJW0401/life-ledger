@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 
 	"life-ledger/internal/domain/transactions"
@@ -160,8 +159,8 @@ func parseRow(rowNumber int, row []string) (transactions.Input, []RowError) {
 		}
 	}
 	if input.Amount != "" {
-		if parsed, err := strconv.ParseFloat(input.Amount, 64); err != nil || parsed <= 0 {
-			errors = append(errors, RowError{Row: rowNumber, Column: "金额", Reason: "金额必须大于 0"})
+		if err := transactions.ValidateAmount(input.Amount); err != nil {
+			errors = append(errors, RowError{Row: rowNumber, Column: "金额", Reason: "金额必须为大于 0 且最多两位小数的普通数字"})
 		}
 	}
 	return input, errors

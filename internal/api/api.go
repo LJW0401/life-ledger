@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -340,9 +341,8 @@ func (a *API) listTransactions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) createTransaction(w http.ResponseWriter, r *http.Request) {
-	var input transactions.Input
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+	input, ok := decodeTransactionInput(w, r)
+	if !ok {
 		return
 	}
 	item, err := a.transactions.Create(r.Context(), input)
@@ -351,6 +351,58 @@ func (a *API) createTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, item)
+}
+
+type transactionRequest struct {
+	Date          string   `json:"date"`
+	Time          string   `json:"time"`
+	Type          string   `json:"type"`
+	Amount        string   `json:"amount"`
+	Category      string   `json:"category"`
+	IncludeIncome *bool    `json:"include_income"`
+	IncludeBudget *bool    `json:"include_budget"`
+	Ledger        string   `json:"ledger"`
+	Counterparty  string   `json:"counterparty"`
+	Account       string   `json:"account"`
+	Note          string   `json:"note"`
+	Tags          []string `json:"tags"`
+}
+
+func decodeTransactionInput(w http.ResponseWriter, r *http.Request) (transactions.Input, bool) {
+	var req transactionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+		return transactions.Input{}, false
+	}
+	input, err := req.input()
+	if err != nil {
+		writeDomainError(w, err)
+		return transactions.Input{}, false
+	}
+	return input, true
+}
+
+func (r transactionRequest) input() (transactions.Input, error) {
+	if r.IncludeIncome == nil {
+		return transactions.Input{}, fmt.Errorf("%w: include_income is required", transactions.ErrValidation)
+	}
+	if r.IncludeBudget == nil {
+		return transactions.Input{}, fmt.Errorf("%w: include_budget is required", transactions.ErrValidation)
+	}
+	return transactions.Input{
+		Date:          r.Date,
+		Time:          r.Time,
+		Type:          r.Type,
+		Amount:        r.Amount,
+		Category:      r.Category,
+		IncludeIncome: *r.IncludeIncome,
+		IncludeBudget: *r.IncludeBudget,
+		Ledger:        r.Ledger,
+		Counterparty:  r.Counterparty,
+		Account:       r.Account,
+		Note:          r.Note,
+		Tags:          r.Tags,
+	}, nil
 }
 
 func (a *API) transactionSummary(w http.ResponseWriter, r *http.Request) {
@@ -372,12 +424,12 @@ func (a *API) transactionTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) transactionExport(w http.ResponseWriter, r *http.Request) {
-	result, err := a.transactions.List(r.Context(), transactionFilter(r))
+	items, err := a.transactions.ListAll(r.Context(), transactionFilter(r))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_error", "读取账单失败")
 		return
 	}
-	content, err := excel.Export(result.Items)
+	content, err := excel.Export(items)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_error", "导出账单失败")
 		return
@@ -436,9 +488,8 @@ func (a *API) transactionByID(w http.ResponseWriter, r *http.Request, session au
 		}
 		writeJSON(w, http.StatusOK, item)
 	case http.MethodPut:
-		var input transactions.Input
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+		input, ok := decodeTransactionInput(w, r)
+		if !ok {
 			return
 		}
 		item, err := a.transactions.Update(r.Context(), id, input)

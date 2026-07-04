@@ -101,28 +101,46 @@ func (s Service) List(ctx context.Context, filter Filter) (ListResult, error) {
 	if err != nil {
 		return ListResult{}, err
 	}
+	items, err := s.scanRows(ctx, rows)
+	if err != nil {
+		return ListResult{}, err
+	}
+	return ListResult{Items: items, Page: filter.Page, PageSize: filter.PageSize, Total: total}, nil
+}
+
+func (s Service) ListAll(ctx context.Context, filter Filter) ([]Transaction, error) {
+	where, args := filterWhere(filter)
+	rows, err := s.DB.QueryContext(ctx, `SELECT id, occurred_date, occurred_time, type, amount_cents, category, include_income, include_budget, ledger, counterparty, account, note, created_at, updated_at
+		FROM transactions `+where+` ORDER BY occurred_date DESC, occurred_time DESC, created_at DESC`, args...)
+	if err != nil {
+		return nil, err
+	}
+	return s.scanRows(ctx, rows)
+}
+
+func (s Service) scanRows(ctx context.Context, rows *sql.Rows) ([]Transaction, error) {
 	defer rows.Close()
 	items := []Transaction{}
 	ids := []string{}
 	for rows.Next() {
 		item, err := scan(rows)
 		if err != nil {
-			return ListResult{}, err
+			return nil, err
 		}
 		items = append(items, item)
 		ids = append(ids, item.ID)
 	}
 	if err := rows.Err(); err != nil {
-		return ListResult{}, err
+		return nil, err
 	}
 	tagMap, err := s.Tags.ListForEntities(ctx, "transaction", ids)
 	if err != nil {
-		return ListResult{}, err
+		return nil, err
 	}
 	for i := range items {
 		items[i].Tags = tagMap[items[i].ID]
 	}
-	return ListResult{Items: items, Page: filter.Page, PageSize: filter.PageSize, Total: total}, nil
+	return items, nil
 }
 
 func (s Service) Summary(ctx context.Context, filter Filter) (Summary, error) {
@@ -373,6 +391,11 @@ func parseAmount(value string) (int64, error) {
 		return 0, fmt.Errorf("%w: amount must be positive", ErrValidation)
 	}
 	return cents, nil
+}
+
+func ValidateAmount(value string) error {
+	_, err := parseAmount(value)
+	return err
 }
 
 func formatAmount(cents int64) string {

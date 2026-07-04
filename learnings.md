@@ -57,3 +57,12 @@
 - **描述**：构建路径、配置默认路径和测试文档在实现演进后发生漂移，用户按旧说明运行时会遇到配置缺失或空配置错误。
 - **建议处理方式**：改变发布/启动约定时同步 PRD、SAD、TPD、部署文档和 release-report；为首次本地运行提供 `init-config` 这类可执行初始化入口。
 - **紧急程度**：中
+
+### Bug 修复：二次审核数据完整性问题
+- **发现于**：二次代码审核文档 `review-notes/code-review-2026-07-04-rerun.md`
+- **现象**：账单导出遗漏分页外数据、备份直接复制 SQLite 文件、Excel 金额格式错误缺少行级详情、交易 JSON 必填布尔字段可省略、决策复盘日期在本地当天 08:00 前不生效。
+- **根因**：测试只覆盖了正常路径和小数据量，没有覆盖超过分页上限、运行中数据库快照、字段 presence、金额语法边界和 date-only 本地日界线。
+- **修复**：导出改用无分页查询；备份改用 SQLite `VACUUM INTO` 快照；Excel 解析复用交易金额规则；API 请求层用指针布尔识别字段缺失；决策状态按本地日期比较。
+- **回归测试**：`internal/api/api_test.go`、`internal/backup/backup_test.go`、`internal/excel/excel_test.go`、`internal/domain/decisions/decisions_test.go`。
+- **为什么原测试没覆盖**：原测试验证了功能可用，但没有把契约里的“全量”“一致性”“行级错误”“必填字段”和“日期语义”变成边界断言。
+- **紧急程度**：高

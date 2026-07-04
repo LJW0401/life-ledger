@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"database/sql"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +27,11 @@ func TestRunCreatesBackupPackage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	conn.Close()
+	if _, err := conn.Exec(`INSERT INTO important_dates(id, title, date, date_type, repeat_rule, note, created_at, updated_at)
+		VALUES ('date_backup_test', '护照到期', '2026-12-01', '证件', '不重复', '', '2026-07-04T00:00:00Z', '2026-07-04T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
 
 	configPath := filepath.Join(root, "config.toml")
 	content := `[data]
@@ -59,5 +64,24 @@ dir = "` + backupDir + `"
 		if _, err := os.Stat(filepath.Join(target, name)); err != nil {
 			t.Fatalf("missing %s: %v", name, err)
 		}
+	}
+	snapshot, err := sql.Open("sqlite", filepath.Join(target, "life-ledger.db")+"?_pragma=query_only(1)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer snapshot.Close()
+	var version int
+	if err := snapshot.QueryRow(`SELECT MAX(version) FROM schema_migrations`).Scan(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version == 0 {
+		t.Fatal("snapshot schema version was not copied")
+	}
+	var count int
+	if err := snapshot.QueryRow(`SELECT COUNT(1) FROM important_dates WHERE id = 'date_backup_test'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("snapshot important_dates count = %d, want 1", count)
 	}
 }

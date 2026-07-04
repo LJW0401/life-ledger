@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"life-ledger/internal/config"
@@ -40,13 +41,14 @@ func Run(configPath string) error {
 	if err := os.Mkdir(targetDir, 0o700); err != nil {
 		return fmt.Errorf("create backup target: %w", err)
 	}
-	if err := copyFile(dbPath, filepath.Join(targetDir, cfg.Data.Database), 0o600); err != nil {
+	targetDB := filepath.Join(targetDir, cfg.Data.Database)
+	if err := snapshotDatabase(context.Background(), dbPath, targetDB); err != nil {
 		return err
 	}
 	if err := copyFile(configPath, filepath.Join(targetDir, "config.toml"), 0o600); err != nil {
 		return err
 	}
-	version, err := schemaVersion(context.Background(), dbPath)
+	version, err := schemaVersion(context.Background(), targetDB)
 	if err != nil {
 		return err
 	}
@@ -82,6 +84,25 @@ func copyFile(src, dst string, perm os.FileMode) error {
 		return fmt.Errorf("copy backup file: %w", err)
 	}
 	return nil
+}
+
+func snapshotDatabase(ctx context.Context, src string, dst string) error {
+	conn, err := sql.Open("sqlite", src+"?_pragma=busy_timeout(5000)")
+	if err != nil {
+		return fmt.Errorf("open database for snapshot: %w", err)
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, "VACUUM INTO "+sqliteString(dst)); err != nil {
+		return fmt.Errorf("snapshot database: %w", err)
+	}
+	if err := os.Chmod(dst, 0o600); err != nil {
+		return fmt.Errorf("set snapshot permission: %w", err)
+	}
+	return nil
+}
+
+func sqliteString(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "''") + "'"
 }
 
 func schemaVersion(ctx context.Context, dbPath string) (int, error) {
