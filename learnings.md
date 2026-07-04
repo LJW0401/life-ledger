@@ -98,3 +98,9 @@
 - **紧急程度**：低
 
 - 2026-07-05 快速功能 release 版本改为 v0.0.1-preview 完成，无 learnings（已执行反思清单）。
+
+### 快速功能：preview 标签发布为预览版
+- **类型**：架构洞察
+- **描述**：GitHub Release workflow 只按 `v*` 标签触发时，标签名里的 preview 语义不会自动转成 prerelease，需要显式写入 `softprops/action-gh-release` 参数。
+- **建议处理方式**：发布 workflow 中保留 `prerelease` 和 `make_latest` 的标签名判断，并用 `scripts/check-workflows.sh` 固化检查。
+- **紧急程度**：低

@@ -82,5 +82,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           body_path: release.md
+          prerelease: ${{ contains(github.ref_name, 'preview') }}
+          make_latest: ${{ contains(github.ref_name, 'preview') && 'false' || 'true' }}
           files: |
             life-ledger-${{ matrix.goos }}-${{ matrix.goarch }}
