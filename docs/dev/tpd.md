@@ -1,8 +1,8 @@
 # life-ledger 测试计划
 
 > 创建日期：2026-07-04
-> 状态：待审核
-> 版本：v0.1
+> 状态：已审核
+> 版本：v1.0
 > 关联需求文档：`docs/dev/prd.md`
 > 关联架构文档：`docs/dev/sad.md`
 
@@ -15,7 +15,7 @@
 - API 细节后续以 `docs/dev/api-design.md` 为准。
 - SQLite 表结构和索引以后续 `docs/dev/data-model.md` 为准。
 - 部署与恢复操作以后续 `docs/dev/deployment.md` 为准。
-- 每个开发阶段的测试执行顺序以后续 `docs/dev/phase-01-mvp.md` 为准。
+- 每个开发阶段的测试执行顺序以 `docs/dev/task.md` 为准。
 
 ## 1. 测试目标
 
@@ -82,7 +82,7 @@
 | R10 | 单用户访问控制 | P0 | API、E2E、安全 | 未登录拦截、正确登录、错误登录、退出。 |
 | R11 | 登录设备记录和会话管理 | P0 | 集成、API、安全 | token 哈希、7 天固定过期、设备列表、撤销。 |
 | R12 | 登录失败限速 | P0 | 单元、集成、API、安全 | 10 分钟 5 次失败锁定 15 分钟，重启后仍生效。 |
-| R13 | 安全配置辅助命令 | P0 | CLI | `hash-password`、`generate-secret` 不启动 HTTP、不改数据库。 |
+| R13 | 安全配置辅助命令和本地配置初始化 | P0 | CLI | `init-config` 创建本地配置；`hash-password`、`generate-secret` 不启动 HTTP、不改数据库。 |
 | R14 | CSRF 防护 | P0 | API、安全 | 写操作缺失或错误 token 返回 403，读操作不要求 token。 |
 | R15 | 敏感配置和文件权限 | P0 | 单元、集成、部署冒烟、安全 | 权限过宽启动失败，日志脱敏。 |
 | R16 | 安全事件审计 | P0 | 集成、API、安全 | 登录、设备、Excel、删除、配置安全失败写入审计。 |
@@ -95,6 +95,7 @@
 ### 6.1 服务启动和配置
 
 - 合法 `config.toml` 可以启动服务。
+- `init-config` 可以创建 `config.toml`、`data/` 和 `backups/`，并拒绝覆盖已有配置。
 - 缺失配置文件、TOML 格式错误、必填项缺失时启动失败。
 - `session_secret` 缺失或短于 32 字节时启动失败。
 - 配置中出现明文密码字段时启动失败。
@@ -267,7 +268,7 @@ test -z "$(gofmt -l ./cmd ./internal)"
 go vet ./...
 go test ./...
 go test -race ./...
-go build ./cmd/server
+make build
 ```
 
 前端：
@@ -282,10 +283,10 @@ npm run test:e2e
 发布前完整门控：
 
 ```bash
-go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run build
+go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run build && make build
 ```
 
-说明：当前仓库尚未完成代码脚手架，以上命令在创建 `cmd/`、`internal/` 和 `web/` 后必须落地为可执行门控。
+说明：`make build` 是发布二进制的标准构建入口，输出 `bin/life-ledger`。
 
 ## 12. 发布准入标准
 
@@ -299,9 +300,9 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - 前端 E2E 冒烟覆盖登录、三页导航和每个核心页面的一条新增/删除链路。
 - 发布前完整门控命令通过。
 
-## 13. 待后续细化
+## 13. 已完成细化项
 
-- `docs/dev/api-design.md` 完成后，补充接口级测试用例编号和错误码断言。
-- `docs/dev/data-model.md` 完成后，补充索引验证和 migration 回归用例。
-- `docs/dev/deployment.md` 完成后，补充 Caddy 反代和恢复演练检查清单。
-- `docs/dev/phase-01-mvp.md` 完成后，把测试任务拆分到具体开发阶段。
+- `docs/dev/api-design.md` 已完成，接口级错误码在 API 测试和 E2E 中覆盖。
+- `docs/dev/data-model.md` 已完成，索引、migration 和 5000 条账单性能回归已纳入测试。
+- `docs/dev/deployment.md` 已完成，Caddy 反代、备份和恢复检查项已写入部署文档。
+- `docs/dev/task.md` 已完成阶段拆分，阶段 0 到阶段 7 均已通过门控。

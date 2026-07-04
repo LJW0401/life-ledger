@@ -13,7 +13,7 @@
 - UI 结构和页面原型见 `docs/ui/`
 - API 细节后续写入 `docs/dev/api-design.md`
 - SQLite 表结构后续写入 `docs/dev/data-model.md`
-- 阶段拆分后续写入 `docs/dev/roadmap.md` 和 `docs/dev/phase-01-mvp.md`
+- 阶段拆分写入 `docs/dev/task.md`
 
 ## 1. 项目概述
 
@@ -76,7 +76,7 @@
 - 决策状态管理：进行中、待复盘、已归档。
 - 单用户访问控制。
 - 登录设备记录和设备会话管理。
-- 安全配置辅助命令：生成密码哈希和会话密钥。
+- 安全配置辅助命令：生成本地配置、密码哈希和会话密钥。
 - 手动备份命令和恢复说明。
 
 ### 2.3 首版不包含
@@ -99,7 +99,7 @@
 - **输入**：`config.toml`。
 - **输出**：可访问的本地网页服务。
 - **验收标准**：
-  - Given 当前目录存在合法 `config.toml`, When 用户运行 `./life-ledger`, Then 服务按配置监听并输出访问地址。
+  - Given 二进制文件所在目录存在合法 `config.toml`, When 用户运行 `./life-ledger`, Then 服务按配置监听并输出访问地址。
   - Given `config.toml` 缺失或格式非法, When 用户运行 `./life-ledger`, Then 程序启动失败并输出明确错误。
   - Given 数据目录不存在, When 用户运行 `./life-ledger`, Then 程序创建数据目录或明确说明无法创建的原因。
 - **优先级**：P0
@@ -292,20 +292,22 @@
 - **成熟度**：RS3
 - **备注**：阈值和锁定时长作为 `config.toml` 配置项提供默认值；默认值为 10 分钟内 5 次失败后锁定 15 分钟。
 
-### R13. 安全配置辅助命令
+### R13. 安全配置辅助命令和本地配置初始化
 
-- **描述**：系统提供命令行辅助命令，用于生成 bcrypt 密码哈希和安全的 `session_secret`，降低用户手写安全配置的出错概率。
+- **描述**：系统提供命令行辅助命令，用于生成本地 `config.toml`、bcrypt 密码哈希和安全的 `session_secret`，降低用户手写安全配置的出错概率。
 - **用户场景**：用户首次部署到云服务器时，需要为 `config.toml` 生成 `password_hash` 和 `session_secret`。
 - **输入**：明文密码输入、随机数源。
-- **输出**：bcrypt 密码哈希、随机 `session_secret`。
+- **输出**：本地配置文件、bcrypt 密码哈希、随机 `session_secret`。
 - **验收标准**：
+  - Given 用户运行 `./life-ledger init-config`, When 二进制目录下不存在 `config.toml`, Then 程序创建 `config.toml`、`data/` 和 `backups/`，并输出一次性初始密码。
+  - Given 二进制目录下已经存在 `config.toml`, When 用户运行 `./life-ledger init-config`, Then 程序拒绝覆盖并输出明确错误。
   - Given 用户运行 `./life-ledger hash-password`, When 按提示输入密码, Then 程序输出 bcrypt cost=12 的密码哈希。
   - Given 用户运行 `./life-ledger generate-secret`, When 命令执行成功, Then 程序输出至少 32 字节强随机生成的 `session_secret`。
   - Given 辅助命令执行失败, When 程序退出, Then 输出明确错误并使用非零退出码。
   - Given 用户运行辅助命令, When 命令执行, Then 不启动 HTTP 服务、不打开浏览器页面、不修改数据库。
 - **优先级**：P0
 - **成熟度**：RS3
-- **备注**：辅助命令只输出配置值，不自动写入 `config.toml`。
+- **备注**：`hash-password` 和 `generate-secret` 只输出配置值，不自动写入；`init-config` 只创建新配置，已存在时必须失败。
 
 ### R14. CSRF 防护
 
@@ -449,7 +451,7 @@
 - 密码使用 bcrypt 哈希，默认 cost=12；密码不应明文存储在数据库或配置文件中，配置文件只保存密码哈希。
 - 配置文件中出现明文密码配置时，服务必须启动失败并提示改用密码哈希。
 - `session_secret` 用于签名登录 Cookie，必须来自 `config.toml`，长度至少 32 字节，缺失或太短时服务必须启动失败。
-- 应提供 `hash-password` 和 `generate-secret` 辅助命令生成安全配置值。
+- 应提供 `init-config`、`hash-password` 和 `generate-secret` 辅助命令生成安全配置值。
 - 登录态 Cookie 应使用 HttpOnly；云服务器 HTTPS 部署时应使用 Secure；SameSite 建议使用 Lax。
 - 会话 token 必须使用密码学安全随机数生成，数据库只保存 token 哈希。
 - 使用 Cookie 登录态时，所有非 `GET`、`HEAD`、`OPTIONS` 的业务 API 必须校验 CSRF token。
@@ -620,9 +622,8 @@ PRD 确认后，建议按以下顺序补齐开发文档：
 
 1. `docs/dev/data-model.md`
 2. `docs/dev/api-design.md`
-3. `docs/dev/roadmap.md`
-4. `docs/dev/phase-01-mvp.md`
-5. `docs/dev/deployment.md`
+3. `docs/dev/deployment.md`
+4. `docs/dev/task.md`
 
 ## 10. 审核记录
 

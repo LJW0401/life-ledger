@@ -6,17 +6,16 @@
 
 - 后端：Go
 - 程序入口：`cmd/server/main.go`
-- HTTP 路由：`chi`，或先使用标准库 `net/http`
+- HTTP 路由：标准库 `net/http`
 - 前端：React + TypeScript + Vite
-- UI：Tailwind CSS + shadcn/ui
+- UI：普通 CSS + `lucide-react` 图标
 - 数据库：SQLite
-- 数据访问：手写 SQL 起步
+- 数据访问：手写 SQL
 - 数据库迁移：应用启动时执行内嵌 SQL migration
 - Excel 导入导出：`github.com/xuri/excelize/v2`
 - 配置文件：外部 `config.toml`
 - 配置解析：`github.com/pelletier/go-toml/v2`
 - 静态资源打包：Go `embed` 内嵌前端 `dist`
-- 定时任务：`robfig/cron`，或自写轻量 scheduler
 - 部署方式：单个二进制文件 + `config.toml` + 数据目录
 
 ## 部署形态
@@ -29,6 +28,7 @@ life-ledger/
   config.toml          服务配置
   data/
     life-ledger.db     SQLite 数据库
+  backups/             本地备份
 ```
 
 默认运行方式：
@@ -37,23 +37,91 @@ life-ledger/
 ./life-ledger
 ```
 
-程序默认读取当前目录下的 `config.toml`。命令行参数只保留特殊场景使用的 `--config`：
+程序默认读取二进制文件所在目录下的 `config.toml`。配置中的相对 `data.dir` 和 `backup.dir` 也按 `config.toml` 所在目录解析。命令行参数只保留特殊场景使用的 `--config`：
 
 ```bash
 ./life-ledger --config /path/to/config.toml
 ```
 
+首次部署前生成安全配置值：
+
+```bash
+./life-ledger init-config
+./life-ledger hash-password
+./life-ledger generate-secret
+```
+
+备份：
+
+```bash
+./life-ledger backup
+```
+
+Caddy 负责公网 HTTPS 和反向代理，应用默认只监听 `127.0.0.1:8080`：
+
+```caddyfile
+life.example.com {
+  reverse_proxy 127.0.0.1:8080
+}
+```
+
+## 本地开发
+
+首次准备依赖：
+
+```bash
+go mod tidy
+npm --prefix web install
+npm --prefix web exec playwright install chromium
+```
+
+生成部署二进制：
+
+```bash
+make build
+```
+
+产物位置：
+
+```text
+bin/life-ledger
+```
+
+首次本地运行前生成本地配置：
+
+```bash
+make init-local-config
+```
+
+该命令会创建 `bin/config.toml`、`bin/data/` 和 `bin/backups/`，并在终端输出一次性初始密码。`bin/config.toml` 已被 Git 忽略，不会提交。
+
+常用门控：
+
+```bash
+test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"
+go vet ./...
+go test ./...
+go test -race ./...
+make build
+npm run typecheck
+npm run lint
+npm run build
+npm run test:e2e
+```
+
+E2E 测试会自动构建前端，并用临时 `config.toml` 和临时 SQLite 数据目录启动本地服务。
+
 ## 源码结构
 
 ```text
 life-ledger/
+  docs/dev/            PRD、SAD、TPD、API、数据模型、部署和任务计划
   docs/ui/             UI 设计文档、页面草图和交互说明
   cmd/server/          程序入口，最终编译成 life-ledger 二进制
   internal/config/     读取和校验 config.toml
   internal/api/        HTTP API
   internal/domain/     账单、重要日期、决策等业务逻辑
   internal/db/         SQLite、SQL、内嵌 migration
-  internal/jobs/       复盘、定时任务
   web/                 React 前端
 ```
 
@@ -71,10 +139,26 @@ database = "life-ledger.db"
 [auth]
 username = "admin"
 password_hash = ""
+session_secret = ""
+session_days = 7
+
+[security]
+trusted_proxies = ["127.0.0.1"]
+login_failure_window_minutes = 10
+login_failure_limit = 5
+login_lock_minutes = 15
+cookie_secure = true
 
 [export]
 timezone = "Asia/Shanghai"
+max_upload_mb = 5
+max_import_rows = 5000
+
+[backup]
+dir = "./backups"
 ```
+
+`password_hash` 和 `session_secret` 必须由辅助命令生成后填入。`config.toml` 权限必须是 `600`，数据目录权限必须是 `700`。
 
 ## 数据存储
 
@@ -94,9 +178,9 @@ timezone = "Asia/Shanghai"
 建议 API：
 
 ```text
-GET  /api/bills/export.xlsx       导出账单 Excel
-GET  /api/bills/template.xlsx     下载账单导入模板
-POST /api/bills/import.xlsx       上传账单 Excel 并导入
+GET  /api/transactions/export.xlsx       导出账单 Excel
+GET  /api/transactions/template.xlsx     下载账单导入模板
+POST /api/transactions/import.xlsx       上传账单 Excel 并导入
 ```
 
 导入规则：

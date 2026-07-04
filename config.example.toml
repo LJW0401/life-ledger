@@ -1,0 +1,28 @@
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[data]
+dir = "./data"
+database = "life-ledger.db"
+
+[auth]
+username = "admin"
+password_hash = ""
+session_secret = ""
+session_days = 7
+
+[security]
+trusted_proxies = ["127.0.0.1"]
+login_failure_window_minutes = 10
+login_failure_limit = 5
+login_lock_minutes = 15
+cookie_secure = true
+
+[export]
+timezone = "Asia/Shanghai"
+max_upload_mb = 5
+max_import_rows = 5000
+
+[backup]
+dir = "./backups"
