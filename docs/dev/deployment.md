@@ -158,7 +158,7 @@ journalctl -u life-ledger -f
 本地构建流程：
 
 ```bash
-npm install
+npm --prefix web install
 npm run build
 go test ./...
 go build -o dist/life-ledger ./cmd/server

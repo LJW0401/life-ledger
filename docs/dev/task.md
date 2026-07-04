@@ -1389,6 +1389,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-7.1 [M] 全量安全回归
 
+- **状态**：已完成
 - **描述**：按 TPD 第 8 章执行认证、设备、限速、CSRF、CORS、响应头、可信 IP、日志和审计回归。
 - **验收标准**：
   1. 安全测试中认证、CSRF、CORS、响应头、日志脱敏、审计、设备撤销和登录失败限速全部通过。
@@ -1400,6 +1401,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-7.2 [S] 异常测试 — 发布安全边界
 
+- **状态**：已完成
 - **描述**：补齐发布前安全边界测试。
 - **覆盖场景清单**：
   - [x] 权限/认证：所有受保护写接口无 token 拒绝。
@@ -1418,6 +1420,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-7.3 [集成门控] 安全发布门控
 
+- **状态**：已完成
 - **描述**：确认安全测试结果达到发布准入。
 - **验收标准**：
   1. `go test ./... && go test -race ./... && npm run test:e2e` 通过。
@@ -1429,6 +1432,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：CI 门控/本地完整门控命令。
 #### WI-7.4 [M] 性能测试 — 数据量回归
 
+- **状态**：已完成
 - **描述**：用 5000 条测试数据验证账单列表、统计、预算和 Excel 导入性能。
 - **验收标准**：
   1. 常规 API 请求 P95 小于 300ms。
@@ -1441,6 +1445,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-7.5 [S] 异常测试 — 性能边界
 
+- **状态**：已完成
 - **描述**：覆盖分页上限、超大导入和索引缺失回归。
 - **覆盖场景清单**：
   - [x] 边界值：`page_size` 超过 200。
@@ -1458,6 +1463,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-7.6 [集成门控] 性能发布门控
 
+- **状态**：已完成
 - **描述**：确认性能和数据量测试达到发布准入。
 - **验收标准**：
   1. 性能回归报告记录关键接口结果。
@@ -1469,6 +1475,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：CI 门控/本地完整门控命令。
 #### WI-7.7 [M] 文档和发布包收口
 
+- **状态**：已完成
 - **描述**：更新 README、部署文档、配置示例、恢复说明和发布检查清单。
 - **验收标准**：
   1. README 能指导用户构建、配置、启动和备份。
@@ -1481,6 +1488,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-7.8 [S] Smoke 测试 — 发布包
 
+- **状态**：已完成
 - **描述**：构建发布二进制并在临时目录用示例配置启动。
 - **验收标准**：
   1. Given 构建产物和配置文件, When 在临时目录启动, Then 浏览器可访问登录页。
@@ -1492,6 +1500,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-7.9 [S] 异常测试 — 发布包
 
+- **状态**：已完成
 - **描述**：覆盖缺少配置、权限错误、缺少数据目录和端口占用。
 - **覆盖场景清单**：
   - [x] 非法输入：缺失配置、非法 TOML。
@@ -1510,6 +1519,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-7.10 [集成门控] 发布准入
 
+- **状态**：已完成
 - **描述**：执行发布前完整门控，确认首版可交付。
 - **验收标准**：
   1. `go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run build` 通过。
@@ -1524,7 +1534,14 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 1. Given 发布候选版本, When 执行完整门控, Then 所有测试和构建通过。
 2. Given 用户按部署文档部署, When Caddy 反代访问服务, Then 可登录并操作三类核心页面。
-3. 阶段状态：未开始。
+3. 阶段状态：已完成。
+
+**完成日期**：2026-07-04
+**验收结果**：通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**发布包冒烟**：临时目录构建 `life-ledger` 二进制，使用临时 `config.toml` 启动并访问 `http://127.0.0.1:18081/important-dates` 成功
+**集成门控**：WI-7.3、WI-7.6、WI-7.10 通过
+**备注**：已补齐发布安全边界测试、5000 条账单性能回归、批量标签查询优化、发布回归记录、README 和部署文档收口。
 
 ## 6. 风险与应对
 

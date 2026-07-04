@@ -6,17 +6,16 @@
 
 - 后端：Go
 - 程序入口：`cmd/server/main.go`
-- HTTP 路由：`chi`，或先使用标准库 `net/http`
+- HTTP 路由：标准库 `net/http`
 - 前端：React + TypeScript + Vite
-- UI：Tailwind CSS + shadcn/ui
+- UI：普通 CSS + `lucide-react` 图标
 - 数据库：SQLite
-- 数据访问：手写 SQL 起步
+- 数据访问：手写 SQL
 - 数据库迁移：应用启动时执行内嵌 SQL migration
 - Excel 导入导出：`github.com/xuri/excelize/v2`
 - 配置文件：外部 `config.toml`
 - 配置解析：`github.com/pelletier/go-toml/v2`
 - 静态资源打包：Go `embed` 内嵌前端 `dist`
-- 定时任务：`robfig/cron`，或自写轻量 scheduler
 - 部署方式：单个二进制文件 + `config.toml` + 数据目录
 
 ## 部署形态
@@ -29,6 +28,7 @@ life-ledger/
   config.toml          服务配置
   data/
     life-ledger.db     SQLite 数据库
+  backups/             本地备份
 ```
 
 默认运行方式：
@@ -48,6 +48,20 @@ life-ledger/
 ```bash
 ./life-ledger hash-password
 ./life-ledger generate-secret
+```
+
+备份：
+
+```bash
+./life-ledger backup
+```
+
+Caddy 负责公网 HTTPS 和反向代理，应用默认只监听 `127.0.0.1:8080`：
+
+```caddyfile
+life.example.com {
+  reverse_proxy 127.0.0.1:8080
+}
 ```
 
 ## 本地开发
@@ -87,7 +101,6 @@ life-ledger/
   internal/api/        HTTP API
   internal/domain/     账单、重要日期、决策等业务逻辑
   internal/db/         SQLite、SQL、内嵌 migration
-  internal/jobs/       复盘、定时任务
   web/                 React 前端
 ```
 
@@ -105,10 +118,26 @@ database = "life-ledger.db"
 [auth]
 username = "admin"
 password_hash = ""
+session_secret = ""
+session_days = 7
+
+[security]
+trusted_proxies = ["127.0.0.1"]
+login_failure_window_minutes = 10
+login_failure_limit = 5
+login_lock_minutes = 15
+cookie_secure = true
 
 [export]
 timezone = "Asia/Shanghai"
+max_upload_mb = 5
+max_import_rows = 5000
+
+[backup]
+dir = "./backups"
 ```
+
+`password_hash` 和 `session_secret` 必须由辅助命令生成后填入。`config.toml` 权限必须是 `600`，数据目录权限必须是 `700`。
 
 ## 数据存储
 
@@ -128,9 +157,9 @@ timezone = "Asia/Shanghai"
 建议 API：
 
 ```text
-GET  /api/bills/export.xlsx       导出账单 Excel
-GET  /api/bills/template.xlsx     下载账单导入模板
-POST /api/bills/import.xlsx       上传账单 Excel 并导入
+GET  /api/transactions/export.xlsx       导出账单 Excel
+GET  /api/transactions/template.xlsx     下载账单导入模板
+POST /api/transactions/import.xlsx       上传账单 Excel 并导入
 ```
 
 导入规则：

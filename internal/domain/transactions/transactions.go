@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -104,51 +103,63 @@ func (s Service) List(ctx context.Context, filter Filter) (ListResult, error) {
 	}
 	defer rows.Close()
 	items := []Transaction{}
+	ids := []string{}
 	for rows.Next() {
 		item, err := scan(rows)
 		if err != nil {
 			return ListResult{}, err
 		}
-		item.Tags, err = s.Tags.ListForEntity(ctx, "transaction", item.ID)
-		if err != nil {
-			return ListResult{}, err
-		}
 		items = append(items, item)
+		ids = append(ids, item.ID)
 	}
-	return ListResult{Items: items, Page: filter.Page, PageSize: filter.PageSize, Total: total}, rows.Err()
+	if err := rows.Err(); err != nil {
+		return ListResult{}, err
+	}
+	tagMap, err := s.Tags.ListForEntities(ctx, "transaction", ids)
+	if err != nil {
+		return ListResult{}, err
+	}
+	for i := range items {
+		items[i].Tags = tagMap[items[i].ID]
+	}
+	return ListResult{Items: items, Page: filter.Page, PageSize: filter.PageSize, Total: total}, nil
 }
 
 func (s Service) Summary(ctx context.Context, filter Filter) (Summary, error) {
-	filter.Page = 1
-	filter.PageSize = 5000
-	list, err := s.List(ctx, filter)
+	filter = normalizeFilter(filter)
+	where, args := filterWhere(filter)
+	var income, expense int64
+	if err := s.DB.QueryRowContext(ctx, `SELECT
+		COALESCE(SUM(CASE WHEN type = '收入' AND include_income = 1 THEN amount_cents ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN type = '支出' AND include_income = 1 THEN amount_cents ELSE 0 END), 0)
+		FROM transactions `+where, args...).Scan(&income, &expense); err != nil {
+		return Summary{}, err
+	}
+
+	categoryRows, err := s.DB.QueryContext(ctx, `SELECT category, COALESCE(SUM(amount_cents), 0)
+		FROM transactions `+appendWhere(where, "type = '支出' AND include_income = 1")+`
+		GROUP BY category
+		ORDER BY category ASC`, args...)
 	if err != nil {
 		return Summary{}, err
 	}
-	var income, expense int64
-	byCategory := map[string]int64{}
-	for _, item := range list.Items {
-		cents, _ := parseAmount(item.Amount)
-		if !item.IncludeIncome {
-			continue
+	defer categoryRows.Close()
+	categories := []CategorySummary{}
+	for categoryRows.Next() {
+		var category string
+		var value int64
+		if err := categoryRows.Scan(&category, &value); err != nil {
+			return Summary{}, err
 		}
-		if item.Type == "收入" {
-			income += cents
-		}
-		if item.Type == "支出" {
-			expense += cents
-			byCategory[item.Category] += cents
-		}
-	}
-	categories := make([]CategorySummary, 0, len(byCategory))
-	for category, value := range byCategory {
 		ratio := 0.0
 		if expense > 0 {
 			ratio = float64(value) / float64(expense)
 		}
 		categories = append(categories, CategorySummary{Category: category, Expense: formatAmount(value), Ratio: ratio})
 	}
-	sort.Slice(categories, func(i, j int) bool { return categories[i].Category < categories[j].Category })
+	if err := categoryRows.Err(); err != nil {
+		return Summary{}, err
+	}
 	return Summary{Income: formatAmount(income), Expense: formatAmount(expense), Balance: formatAmount(income - expense), ByCategory: categories}, nil
 }
 
@@ -290,6 +301,13 @@ func filterWhere(filter Filter) (string, []any) {
 		return "", args
 	}
 	return "WHERE " + strings.Join(clauses, " AND "), args
+}
+
+func appendWhere(where string, clause string) string {
+	if where == "" {
+		return "WHERE " + clause
+	}
+	return where + " AND " + clause
 }
 
 type scanner interface {

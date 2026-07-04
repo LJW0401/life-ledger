@@ -97,6 +97,48 @@ func TestThirdPartyOriginDoesNotGetWildcardCORS(t *testing.T) {
 	}
 }
 
+func TestProtectedBusinessEndpointsRequireAuth(t *testing.T) {
+	handler, conn := testAPI(t)
+	defer conn.Close()
+
+	for _, path := range []string{"/api/important-dates", "/api/transactions", "/api/budgets", "/api/decisions", "/api/devices", "/api/audit-events"} {
+		response := request(t, handler, http.MethodGet, path, "", nil)
+		if response.Code != http.StatusUnauthorized {
+			t.Fatalf("%s status = %d, want 401", path, response.Code)
+		}
+	}
+}
+
+func TestWriteEndpointsRequireCSRF(t *testing.T) {
+	handler, conn := testAPI(t)
+	defer conn.Close()
+	cookie, _ := loginForTest(t, handler)
+
+	cases := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{http.MethodPost, "/api/important-dates", `{"title":"x","date":"2026-07-04","date_type":"生日"}`},
+		{http.MethodDelete, "/api/important-dates/missing", ""},
+		{http.MethodPost, "/api/transactions", `{"date":"2026-07-04","time":"08:30","type":"支出","amount":"1.00","category":"餐饮","include_income":true,"include_budget":true,"ledger":"默认账本"}`},
+		{http.MethodDelete, "/api/transactions/missing", ""},
+		{http.MethodPost, "/api/budgets", `{"month":"2026-07","category":"餐饮","amount":"100.00"}`},
+		{http.MethodDelete, "/api/budgets/missing", ""},
+		{http.MethodPost, "/api/decisions", `{"title":"x"}`},
+		{http.MethodPut, "/api/decisions/missing", `{"title":"x","status":"已归档"}`},
+		{http.MethodDelete, "/api/decisions/missing", ""},
+		{http.MethodDelete, "/api/devices/missing", ""},
+		{http.MethodPost, "/api/auth/logout", ""},
+	}
+	for _, tc := range cases {
+		response := request(t, handler, tc.method, tc.path, tc.body, []*http.Cookie{cookie})
+		if response.Code != http.StatusForbidden {
+			t.Fatalf("%s %s status = %d, want 403", tc.method, tc.path, response.Code)
+		}
+	}
+}
+
 func TestImportantDatesCRUDTagsAndAudit(t *testing.T) {
 	handler, conn := testAPI(t)
 	defer conn.Close()

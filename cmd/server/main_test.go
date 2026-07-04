@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -34,5 +35,19 @@ func TestGenerateSecretCommand(t *testing.T) {
 	}
 	if got := strings.TrimSpace(out.String()); len(got) < 32 {
 		t.Fatalf("secret too short: %q", got)
+	}
+}
+
+func TestRunRejectsMissingConfig(t *testing.T) {
+	err := run([]string{"--config", filepath.Join(t.TempDir(), "missing.toml")})
+	if err == nil || !strings.Contains(err.Error(), "read config") {
+		t.Fatalf("expected missing config error, got %v", err)
+	}
+}
+
+func TestRunRejectsUnknownCommand(t *testing.T) {
+	err := run([]string{"unknown"})
+	if err == nil || !strings.Contains(err.Error(), "unknown command") {
+		t.Fatalf("expected unknown command error, got %v", err)
 	}
 }

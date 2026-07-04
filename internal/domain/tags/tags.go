@@ -67,6 +67,40 @@ func (s Store) ListForEntity(ctx context.Context, entityType, entityID string) (
 	return names, rows.Err()
 }
 
+func (s Store) ListForEntities(ctx context.Context, entityType string, entityIDs []string) (map[string][]string, error) {
+	if !allowedEntities[entityType] {
+		return nil, fmt.Errorf("invalid entity type")
+	}
+	result := make(map[string][]string, len(entityIDs))
+	if len(entityIDs) == 0 {
+		return result, nil
+	}
+	placeholders := make([]string, 0, len(entityIDs))
+	args := []any{entityType}
+	for _, id := range entityIDs {
+		result[id] = []string{}
+		placeholders = append(placeholders, "?")
+		args = append(args, id)
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT et.entity_id, t.name FROM tags t
+		JOIN entity_tags et ON et.tag_id = t.id
+		WHERE et.entity_type = ? AND et.entity_id IN (`+strings.Join(placeholders, ",")+`)
+		ORDER BY et.entity_id, t.name`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var entityID string
+		var name string
+		if err := rows.Scan(&entityID, &name); err != nil {
+			return nil, err
+		}
+		result[entityID] = append(result[entityID], name)
+	}
+	return result, rows.Err()
+}
+
 func (s Store) Search(ctx context.Context, query string) ([]Tag, error) {
 	query = strings.TrimSpace(query)
 	sqlText := `SELECT id, name FROM tags ORDER BY name LIMIT 50`
