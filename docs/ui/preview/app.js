@@ -22,8 +22,8 @@ const pageMeta = {
   },
   transactions: {
     title: "账单",
-    heading: "收支流水、分类统计和 Excel 交换放在同一个工作台",
-    intro: "账单页默认展示流水，侧边保留月度概览。导入导出作为页面内视图，不单独占用一级页面。",
+    heading: "收支流水、预算和 Excel 交换放在同一个工作台",
+    intro: "账单页默认展示流水，侧边保留月度概览和预算使用情况。预算按月份和分类管理，不单独占用一级页面。",
   },
   decisions: {
     title: "决策",
@@ -33,18 +33,18 @@ const pageMeta = {
 };
 
 const dates = [
-  { day: "03", month: "8月", title: "护照到期提醒", detail: "提前 45 天提醒，准备换证材料", tags: ["证件", "提醒已开"], tone: "green" },
-  { day: "12", month: "8月", title: "家庭年度体检", detail: "父母体检套餐续约，提前一周确认预约", tags: ["健康", "重复每年"], tone: "blue" },
-  { day: "26", month: "8月", title: "房租付款日", detail: "每月 26 日固定提醒，账单页可关联支出", tags: ["缴费", "每月"], tone: "amber" },
-  { day: "09", month: "9月", title: "结婚纪念日", detail: "提前 10 天提醒，记录礼物和计划", tags: ["纪念日", "重要"], tone: "red" },
+  { day: "03", month: "8月", title: "护照到期", detail: "记录换证材料和办理进度", tags: ["证件", "到期"], tone: "green" },
+  { day: "12", month: "8月", title: "家庭年度体检", detail: "父母体检套餐续约，记录预约信息", tags: ["健康", "重复每年"], tone: "blue" },
+  { day: "26", month: "8月", title: "房租付款日", detail: "每月 26 日固定日期，账单页可关联支出", tags: ["缴费", "每月"], tone: "amber" },
+  { day: "09", month: "9月", title: "结婚纪念日", detail: "记录礼物、安排和当日计划", tags: ["纪念日", "重要"], tone: "red" },
 ];
 
 const transactions = [
-  { date: "2026-07-04", type: "支出", category: "餐饮", account: "支付宝", merchant: "午餐", amount: "-38.00" },
-  { date: "2026-07-03", type: "收入", category: "工资", account: "招商银行", merchant: "薪资", amount: "+18500.00" },
-  { date: "2026-07-02", type: "支出", category: "交通", account: "微信", merchant: "地铁", amount: "-7.00" },
-  { date: "2026-07-01", type: "支出", category: "居住", account: "招商银行", merchant: "房租", amount: "-4200.00" },
-  { date: "2026-06-30", type: "支出", category: "学习", account: "信用卡", merchant: "课程订阅", amount: "-299.00" },
+  { date: "2026-07-04", time: "12:20", type: "支出", category: "餐饮", book: "默认账本", budget: "是", account: "支付宝", merchant: "午餐", amount: "-38.00" },
+  { date: "2026-07-03", time: "09:10", type: "收入", category: "工资", book: "默认账本", budget: "否", account: "招商银行", merchant: "薪资", amount: "+18500.00" },
+  { date: "2026-07-02", time: "08:42", type: "支出", category: "交通", book: "默认账本", budget: "是", account: "微信", merchant: "地铁", amount: "-7.00" },
+  { date: "2026-07-01", time: "10:00", type: "支出", category: "居住", book: "默认账本", budget: "是", account: "招商银行", merchant: "房租", amount: "-4200.00" },
+  { date: "2026-06-30", time: "21:16", type: "支出", category: "学习", book: "默认账本", budget: "是", account: "信用卡", merchant: "课程订阅", amount: "-299.00" },
 ];
 
 const decisions = {
@@ -163,7 +163,7 @@ function renderDates() {
         ${metrics([
           { label: "30 天内", value: "3" },
           { label: "重复日期", value: "9" },
-          { label: "未设提醒", value: "2" },
+          { label: "证件日期", value: "2" },
         ])}
         <div class="section-title" style="margin-top: 18px;">
           <h3>本周日历</h3>
@@ -173,7 +173,7 @@ function renderDates() {
           ${["一", "二", "三", "四", "五", "六", "日"].map((day, index) => `
             <div class="day-cell ${index === 5 ? "marked" : ""}">
               <strong>周${day}</strong>
-              <span>${index === 5 ? "房租提醒" : "无事项"}</span>
+              <span>${index === 5 ? "房租付款" : "无事项"}</span>
             </div>
           `).join("")}
         </div>
@@ -188,6 +188,7 @@ function renderTransactions() {
     ${segmented("transactions", [
       { key: "list", label: "流水列表" },
       { key: "stats", label: "统计概览" },
+      { key: "budget", label: "预算概览" },
       { key: "exchange", label: "导入导出" },
     ])}
     <div class="content-grid">
@@ -201,8 +202,11 @@ function renderTransactions() {
             <thead>
               <tr>
                 <th>日期</th>
+                <th>时间</th>
                 <th>类型</th>
                 <th>分类</th>
+                <th>计入预算</th>
+                <th>所属账本</th>
                 <th>账户</th>
                 <th>对象</th>
                 <th>金额</th>
@@ -212,8 +216,11 @@ function renderTransactions() {
               ${transactions.map((item) => `
                 <tr>
                   <td>${item.date}</td>
+                  <td>${item.time}</td>
                   <td><span class="tag ${item.type === "收入" ? "green" : "red"}">${item.type}</span></td>
                   <td>${item.category}</td>
+                  <td>${item.budget}</td>
+                  <td>${item.book}</td>
                   <td>${item.account}</td>
                   <td>${item.merchant}</td>
                   <td class="amount ${item.type === "收入" ? "income" : ""}">${item.amount}</td>
@@ -233,6 +240,25 @@ function renderTransactions() {
           { label: "支出", value: "4,544" },
           { label: "结余", value: "13,956" },
         ])}
+        <div class="section-title" style="margin-top: 18px;">
+          <h3>预算使用</h3>
+          <span>7 月</span>
+        </div>
+        <div class="bar-list">
+          ${[
+            ["居住", 4200, 4500],
+            ["学习", 299, 500],
+            ["餐饮", 38, 1800],
+          ].map(([name, used, total]) => {
+            const width = Math.min(Math.round((used / total) * 100), 100);
+            return `
+              <div class="bar-row">
+                <header><span>${name}</span><strong>${used}/${total}</strong></header>
+                <div class="bar-track"><div class="bar-fill" style="width: ${width}%;"></div></div>
+              </div>
+            `;
+          }).join("")}
+        </div>
         <div class="section-title" style="margin-top: 18px;">
           <h3>支出分类</h3>
           <span>占比</span>

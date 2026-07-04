@@ -1,6 +1,6 @@
 # life-ledger
 
-个人生活管理服务，记录重要日期、收支流水和关键决策，并支持提醒、分析与复盘。
+个人生活管理服务，记录重要日期、收支流水和关键决策，并支持分析与复盘。
 
 ## 技术栈
 
@@ -53,7 +53,7 @@ life-ledger/
   internal/api/        HTTP API
   internal/domain/     账单、重要日期、决策等业务逻辑
   internal/db/         SQLite、SQL、内嵌 migration
-  internal/jobs/       提醒、复盘、定时任务
+  internal/jobs/       复盘、定时任务
   web/                 React 前端
 ```
 
@@ -72,10 +72,6 @@ database = "life-ledger.db"
 username = "admin"
 password_hash = ""
 
-[reminder]
-enabled = true
-check_interval_seconds = 60
-
 [export]
 timezone = "Asia/Shanghai"
 ```
@@ -89,7 +85,6 @@ timezone = "Asia/Shanghai"
 - `transactions`：账单、收入、支出流水
 - `important_dates`：生日、纪念日、证件到期、缴费日等重要日期
 - `decisions`：关键决策、决策背景、选项、结果和复盘信息
-- `reminders`：提醒任务，可关联账单、日期或决策
 - `tags` / `entity_tags`：跨业务对象复用的标签
 
 ## Excel 账单导入导出
@@ -106,6 +101,8 @@ POST /api/bills/import.xlsx       上传账单 Excel 并导入
 
 导入规则：
 
+- 固定列：日期、时间、类型、金额、分类、计入收支、计入预算、所属账本、对象、账户、标签、备注。
+- 必填列：日期、时间、类型、金额、分类、计入收支、计入预算、所属账本。
 - 先校验整张表。
 - 有错误时返回具体行号和原因，不写入数据库。
 - 校验通过后，在一个 SQLite transaction 中一次性写入。
