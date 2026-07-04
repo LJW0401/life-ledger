@@ -1018,6 +1018,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-5.1 [M] 实现 Excel 模板和导出
 
+- **状态**：已完成
 - **描述**：使用 excelize 实现模板下载和按筛选条件导出 `.xlsx`。
 - **验收标准**：
   1. 模板包含 PRD 指定必填和选填列表头。
@@ -1030,6 +1031,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-5.2 [S] Smoke 测试 — Excel 模板和导出
 
+- **状态**：已完成
 - **描述**：验证模板和导出文件格式、表头、筛选结果。
 - **验收标准**：
   1. Given 用户请求模板, When 打开文件, Then 表头和字段顺序正确。
@@ -1041,6 +1043,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-5.3 [S] 异常测试 — Excel 模板和导出
 
+- **状态**：已完成
 - **描述**：覆盖未登录、空数据、非法筛选和文件生成错误。
 - **覆盖场景清单**：
   - [x] 权限/认证：未登录下载导出。
@@ -1059,6 +1062,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-5.3G [集成门控] Excel 导出集成
 
+- **状态**：已完成
 - **描述**：验证模板下载、导出和认证保护在账单数据上可用。
 - **验收标准**：
   1. `go test ./...` 通过。
@@ -1070,6 +1074,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-5.4 [M] 实现 Excel 导入校验和事务写入
 
+- **状态**：已完成
 - **描述**：实现 `.xlsx` 接收、大小限制、首个工作表解析、整表校验、transaction 写入和审计。
 - **验收标准**：
   1. 合法 5000 行以内文件可以导入。
@@ -1082,6 +1087,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-5.5 [S] Smoke 测试 — Excel 导入
 
+- **状态**：已完成
 - **描述**：验证合法 `.xlsx` 文件导入账单并写入审计。
 - **验收标准**：
   1. Given 合法导入文件, When 导入, Then 账单全部写入且审计记录成功事件。
@@ -1093,6 +1099,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-5.6 [S] 异常测试 — Excel 导入
 
+- **状态**：已完成
 - **描述**：覆盖格式、大小、行数、表头、必填、枚举、金额和回滚。
 - **覆盖场景清单**：
   - [x] 非法输入：非 `.xlsx`、错误表头、必填列空、枚举非法、金额非法。
@@ -1111,6 +1118,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-5.7 [集成门控] Excel 后端集成
 
+- **状态**：已完成
 - **描述**：验证 Excel 模板、导出、导入、审计和账单服务集成。
 - **验收标准**：
   1. `go test ./... && go test -race ./...` 通过。
@@ -1122,6 +1130,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：CI 门控/本地完整门控命令。
 #### WI-5.8 [M] 实现账单页 Excel UI
 
+- **状态**：已完成
 - **描述**：在账单页接入模板下载、导入上传、错误明细展示、导出按钮。
 - **验收标准**：
   1. 用户可以在账单页下载模板、上传 Excel、查看错误明细、导出账单。
@@ -1134,6 +1143,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-5.9 [S] Smoke 测试 — Excel UI
 
+- **状态**：已完成
 - **描述**：用 E2E 验证模板下载、合法文件导入和导出。
 - **验收标准**：
   1. Given 登录用户上传合法文件, When 导入成功, Then 账单列表出现导入记录。
@@ -1145,6 +1155,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-5.10 [S] 异常测试 — Excel UI
 
+- **状态**：已完成
 - **描述**：覆盖非法文件、错误行展示、超大文件和登录过期。
 - **覆盖场景清单**：
   - [x] 非法输入：非 `.xlsx`、错误表头、错误行。
@@ -1163,6 +1174,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-5.11 [集成门控] Excel 端到端集成
 
+- **状态**：已完成
 - **描述**：验证账单页 Excel 从 UI 到 SQLite 的完整链路。
 - **验收标准**：
   1. `go test ./... && npm run test:e2e` 通过。
@@ -1176,7 +1188,13 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 1. Given 用户上传合法 Excel, When 确认导入, Then 所有记录一次性写入数据库。
 2. Given 用户上传包含错误行的 Excel, When 导入失败, Then 返回具体错误且数据库不写入任何记录。
-3. 阶段状态：未开始。
+3. 阶段状态：已完成。
+
+**完成日期**：2026-07-04
+**验收结果**：通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**集成门控**：WI-5.3G、WI-5.7、WI-5.11 通过
+**备注**：已实现账单 Excel 模板、导出、导入校验、事务写入、导入审计和账单页 Excel 控件。
 
 ---
 

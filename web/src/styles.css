@@ -197,6 +197,20 @@ button {
   padding: 14px;
 }
 
+.excel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.excel-actions form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
 .date-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

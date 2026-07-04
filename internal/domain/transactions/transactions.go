@@ -166,22 +166,42 @@ func (s Service) Create(ctx context.Context, input Input) (Transaction, error) {
 	if err := validate(input); err != nil {
 		return Transaction{}, err
 	}
-	cents, _ := parseAmount(input.Amount)
-	now := time.Now().UTC().Format(time.RFC3339Nano)
 	id := newID("txn")
 	err := db.WithinTx(ctx, s.DB, func(tx *sql.Tx) error {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO transactions
-			(id, occurred_date, occurred_time, type, amount_cents, category, include_income, include_budget, ledger, counterparty, account, note, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			id, input.Date, input.Time, input.Type, cents, input.Category, boolInt(input.IncludeIncome), boolInt(input.IncludeBudget), input.Ledger, input.Counterparty, input.Account, input.Note, now, now); err != nil {
-			return err
-		}
-		return s.Tags.SetForEntity(ctx, tx, "transaction", id, input.Tags)
+		return s.createInTx(ctx, tx, id, input)
 	})
 	if err != nil {
 		return Transaction{}, err
 	}
 	return s.Get(ctx, id)
+}
+
+func (s Service) CreateMany(ctx context.Context, inputs []Input) error {
+	for _, input := range inputs {
+		if err := validate(input); err != nil {
+			return err
+		}
+	}
+	return db.WithinTx(ctx, s.DB, func(tx *sql.Tx) error {
+		for _, input := range inputs {
+			if err := s.createInTx(ctx, tx, newID("txn"), input); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (s Service) createInTx(ctx context.Context, tx *sql.Tx, id string, input Input) error {
+	cents, _ := parseAmount(input.Amount)
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if _, err := tx.ExecContext(ctx, `INSERT INTO transactions
+		(id, occurred_date, occurred_time, type, amount_cents, category, include_income, include_budget, ledger, counterparty, account, note, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, input.Date, input.Time, input.Type, cents, input.Category, boolInt(input.IncludeIncome), boolInt(input.IncludeBudget), input.Ledger, input.Counterparty, input.Account, input.Note, now, now); err != nil {
+		return err
+	}
+	return s.Tags.SetForEntity(ctx, tx, "transaction", id, input.Tags)
 }
 
 func (s Service) Update(ctx context.Context, id string, input Input) (Transaction, error) {

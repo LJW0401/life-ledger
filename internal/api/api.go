@@ -16,6 +16,7 @@ import (
 	"life-ledger/internal/domain/importantdates"
 	"life-ledger/internal/domain/tags"
 	"life-ledger/internal/domain/transactions"
+	"life-ledger/internal/excel"
 	"life-ledger/internal/security"
 )
 
@@ -84,6 +85,12 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.createTransaction(w, r)
 	case r.URL.Path == "/api/transactions/summary" && r.Method == http.MethodGet:
 		a.transactionSummary(w, r)
+	case r.URL.Path == "/api/transactions/template.xlsx" && r.Method == http.MethodGet:
+		a.transactionTemplate(w, r)
+	case r.URL.Path == "/api/transactions/export.xlsx" && r.Method == http.MethodGet:
+		a.transactionExport(w, r)
+	case r.URL.Path == "/api/transactions/import.xlsx" && r.Method == http.MethodPost:
+		a.transactionImport(w, r, session)
 	case strings.HasPrefix(r.URL.Path, "/api/transactions/"):
 		a.transactionByID(w, r, session)
 	case r.URL.Path == "/api/budgets" && r.Method == http.MethodGet:
@@ -276,6 +283,65 @@ func (a *API) transactionSummary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, summary)
 }
 
+func (a *API) transactionTemplate(w http.ResponseWriter, r *http.Request) {
+	content, err := excel.Template()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "生成模板失败")
+		return
+	}
+	writeXLSX(w, "life-ledger-transactions-template.xlsx", content)
+}
+
+func (a *API) transactionExport(w http.ResponseWriter, r *http.Request) {
+	result, err := a.transactions.List(r.Context(), transactionFilter(r))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "读取账单失败")
+		return
+	}
+	content, err := excel.Export(result.Items)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "导出账单失败")
+		return
+	}
+	writeXLSX(w, "life-ledger-transactions.xlsx", content)
+}
+
+func (a *API) transactionImport(w http.ResponseWriter, r *http.Request, session auth.Session) {
+	r.Body = http.MaxBytesReader(w, r.Body, int64(a.auth.Config.Export.MaxUploadMB)*1024*1024)
+	if err := r.ParseMultipartForm(int64(a.auth.Config.Export.MaxUploadMB) * 1024 * 1024); err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, "payload_too_large", "文件过大或表单非法")
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "validation_failed", "缺少上传文件")
+		return
+	}
+	defer file.Close()
+	if !strings.HasSuffix(strings.ToLower(header.Filename), ".xlsx") {
+		writeError(w, http.StatusBadRequest, "validation_failed", "仅支持 .xlsx")
+		return
+	}
+	inputs, err := excel.ParseImport(file, a.auth.Config.Export.MaxImportRows)
+	if err != nil {
+		a.recordExcelAudit(r, session, "failure", "excel validation failed")
+		var validation excel.ValidationError
+		if errors.As(err, &validation) {
+			writeExcelValidation(w, validation)
+			return
+		}
+		writeError(w, http.StatusBadRequest, "validation_failed", "Excel 解析失败")
+		return
+	}
+	if err := a.transactions.CreateMany(r.Context(), inputs); err != nil {
+		a.recordExcelAudit(r, session, "failure", "transaction import failed")
+		writeDomainError(w, err)
+		return
+	}
+	a.recordExcelAudit(r, session, "success", "")
+	writeJSON(w, http.StatusOK, map[string]any{"imported": len(inputs)})
+}
+
 func (a *API) transactionByID(w http.ResponseWriter, r *http.Request, session auth.Session) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/transactions/")
 	if id == "" {
@@ -397,6 +463,40 @@ func writeError(w http.ResponseWriter, status int, code string, message string) 
 			"message": message,
 			"details": []any{},
 		},
+	})
+}
+
+func writeExcelValidation(w http.ResponseWriter, validation excel.ValidationError) {
+	details := make([]any, 0, len(validation.Errors))
+	for _, item := range validation.Errors {
+		details = append(details, item)
+	}
+	writeJSON(w, http.StatusBadRequest, map[string]any{
+		"error": map[string]any{
+			"code":    "validation_failed",
+			"message": "Excel 校验失败",
+			"details": details,
+		},
+	})
+}
+
+func writeXLSX(w http.ResponseWriter, filename string, content []byte) {
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(content)
+}
+
+func (a *API) recordExcelAudit(r *http.Request, session auth.Session, result string, reason string) {
+	clientIP := security.ClientIP(r, a.auth.Config.Security.TrustedProxies)
+	_ = a.audit.Record(r.Context(), audit.Event{
+		EventType:    "excel_import",
+		ClientIP:     clientIP,
+		DeviceID:     session.ID,
+		UserAgent:    r.UserAgent(),
+		ResourceType: "transaction",
+		Result:       result,
+		Reason:       reason,
 	})
 }
 

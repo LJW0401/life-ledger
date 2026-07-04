@@ -303,6 +303,45 @@ export function App() {
     }
   }
 
+  async function downloadExcel(path: string, filename: string) {
+    const response = await fetch(path)
+    if (!response.ok) {
+      setTransactionError('下载失败')
+      return
+    }
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = filename
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function importTransactions(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formElement = event.currentTarget
+    const fileInput = formElement.elements.namedItem('file') as HTMLInputElement | null
+    const file = fileInput?.files?.[0]
+    if (!file) {
+      setTransactionError('请选择文件')
+      return
+    }
+    const form = new FormData()
+    form.append('file', file)
+    const response = await fetch('/api/transactions/import.xlsx', {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': csrfToken },
+      body: form
+    })
+    if (!response.ok) {
+      setTransactionError('导入失败')
+      return
+    }
+    formElement.reset()
+    await loadTransactions()
+  }
+
   if (authStatus === 'checking') {
     return <main className="login-screen" aria-label="加载中" />
   }
@@ -401,6 +440,13 @@ export function App() {
             onCreate={createTransaction}
             onDelete={deleteTransaction}
             onSaveBudget={saveBudget}
+            onTemplate={() =>
+              void downloadExcel('/api/transactions/template.xlsx', 'life-ledger-transactions-template.xlsx')
+            }
+            onExport={() =>
+              void downloadExcel('/api/transactions/export.xlsx', 'life-ledger-transactions.xlsx')
+            }
+            onImport={importTransactions}
           />
         ) : (
           <section className="list" aria-label={`${current.title}列表`}>
@@ -424,7 +470,10 @@ function TransactionsPage({
   error,
   onCreate,
   onDelete,
-  onSaveBudget
+  onSaveBudget,
+  onTemplate,
+  onExport,
+  onImport
 }: {
   items: Transaction[]
   summary: Summary
@@ -433,6 +482,9 @@ function TransactionsPage({
   onCreate: (event: FormEvent<HTMLFormElement>) => void
   onDelete: (id: string) => void
   onSaveBudget: (event: FormEvent<HTMLFormElement>) => void
+  onTemplate: () => void
+  onExport: () => void
+  onImport: (event: FormEvent<HTMLFormElement>) => void
 }) {
   return (
     <section className="transaction-layout">
@@ -441,6 +493,18 @@ function TransactionsPage({
         <strong>支出 {summary.expense}</strong>
         <strong>余额 {summary.balance}</strong>
       </section>
+      <div className="excel-actions">
+        <button type="button" onClick={onTemplate}>
+          下载模板
+        </button>
+        <button type="button" onClick={onExport}>
+          导出账单
+        </button>
+        <form aria-label="Excel 导入" onSubmit={onImport}>
+          <input name="file" type="file" accept=".xlsx" />
+          <button type="submit">导入账单</button>
+        </form>
+      </div>
       <form className="date-form" aria-label="账单表单" onSubmit={onCreate}>
         <label>
           日期

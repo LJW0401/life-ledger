@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,7 +12,9 @@ import (
 
 	"life-ledger/internal/config"
 	"life-ledger/internal/db"
+	excelpkg "life-ledger/internal/excel"
 
+	"github.com/xuri/excelize/v2"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -187,6 +190,42 @@ func TestTransactionsBudgetsSummaryAndAudit(t *testing.T) {
 	}
 }
 
+func TestTransactionExcelTemplateImportExport(t *testing.T) {
+	handler, conn := testAPI(t)
+	defer conn.Close()
+	cookie, csrf := loginForTest(t, handler)
+
+	template := request(t, handler, http.MethodGet, "/api/transactions/template.xlsx", "", []*http.Cookie{cookie})
+	if template.Code != http.StatusOK || template.Header().Get("Content-Type") != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" {
+		t.Fatalf("template status = %d content-type = %s", template.Code, template.Header().Get("Content-Type"))
+	}
+
+	validFile := xlsxFile(t, true)
+	imported := multipartRequest(t, handler, "/api/transactions/import.xlsx", validFile, []*http.Cookie{cookie}, csrf)
+	if imported.Code != http.StatusOK || !bytes.Contains(imported.Body.Bytes(), []byte(`"imported":1`)) {
+		t.Fatalf("import status = %d body = %s", imported.Code, imported.Body.String())
+	}
+
+	invalidFile := xlsxFile(t, false)
+	failed := multipartRequest(t, handler, "/api/transactions/import.xlsx", invalidFile, []*http.Cookie{cookie}, csrf)
+	if failed.Code != http.StatusBadRequest || !bytes.Contains(failed.Body.Bytes(), []byte("表头")) {
+		t.Fatalf("invalid import status = %d body = %s", failed.Code, failed.Body.String())
+	}
+
+	var count int
+	if err := conn.QueryRow(`SELECT COUNT(1) FROM transactions`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("invalid import should not add rows, got %d", count)
+	}
+
+	exported := request(t, handler, http.MethodGet, "/api/transactions/export.xlsx", "", []*http.Cookie{cookie})
+	if exported.Code != http.StatusOK || exported.Body.Len() == 0 {
+		t.Fatalf("export status = %d len = %d", exported.Code, exported.Body.Len())
+	}
+}
+
 func testAPI(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 	dir := t.TempDir()
@@ -207,6 +246,7 @@ func testAPI(t *testing.T) (http.Handler, *sql.DB) {
 			LoginFailureLimit:         5,
 			LoginLockMinutes:          15,
 		},
+		Export: config.ExportConfig{MaxUploadMB: 5, MaxImportRows: 5000},
 	}
 	conn, err := db.Open(cfg)
 	if err != nil {
@@ -245,6 +285,57 @@ func loginForTest(t *testing.T, handler http.Handler) (*http.Cookie, string) {
 		t.Fatalf("login status = %d body = %s", login.Code, login.Body.String())
 	}
 	return login.Result().Cookies()[0], jsonString(t, login.Body.Bytes(), "csrf_token")
+}
+
+func multipartRequest(t *testing.T, handler http.Handler, path string, content []byte, cookies []*http.Cookie, csrf string) *httptest.ResponseRecorder {
+	t.Helper()
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("file", "transactions.xlsx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(content); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, path, &body)
+	req.RemoteAddr = "127.0.0.1:1234"
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("X-CSRF-Token", csrf)
+	for _, cookie := range cookies {
+		req.AddCookie(cookie)
+	}
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	return rec
+}
+
+func xlsxFile(t *testing.T, validHeader bool) []byte {
+	t.Helper()
+	file := excelize.NewFile()
+	defer file.Close()
+	sheet := file.GetSheetName(0)
+	headers := append([]string{}, excelpkg.Headers...)
+	if !validHeader {
+		headers[0] = "错误日期"
+	}
+	for i, header := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		file.SetCellValue(sheet, cell, header)
+	}
+	values := []string{"2026-07-04", "08:30", "支出", "25.50", "餐饮", "是", "是", "默认账本", "早餐店", "现金", "日常", ""}
+	for i, value := range values {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 2)
+		file.SetCellValue(sheet, cell, value)
+	}
+	var buf bytes.Buffer
+	if err := file.Write(&buf); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
 }
 
 func jsonString(t *testing.T, content []byte, key string) string {

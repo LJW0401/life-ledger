@@ -79,6 +79,9 @@ test('important dates can be created and deleted', async ({ page }) => {
 test('transactions update summary and budget usage', async ({ page }) => {
   await page.goto('/transactions')
   await login(page, '账单流水')
+  await expect(page.getByRole('button', { name: '下载模板' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '导出账单' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '导入账单' })).toBeVisible()
   const billForm = page.getByLabel('账单表单')
   await billForm.getByLabel('日期', { exact: true }).fill('2026-07-04')
   await billForm.getByLabel('时间').fill('08:30')
