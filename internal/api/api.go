@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"life-ledger/internal/audit"
 	"life-ledger/internal/auth"
@@ -31,7 +32,11 @@ type API struct {
 	tags           tags.Store
 }
 
-func New(cfg config.Config, conn *sql.DB) http.Handler {
+func New(cfg config.Config, conn *sql.DB) (http.Handler, error) {
+	decisionLocation, err := time.LoadLocation(cfg.Export.Timezone)
+	if err != nil {
+		return nil, fmt.Errorf("load decision timezone: %w", err)
+	}
 	recorder := audit.Recorder{DB: conn}
 	tagStore := tags.Store{DB: conn}
 	return &API{
@@ -42,10 +47,10 @@ func New(cfg config.Config, conn *sql.DB) http.Handler {
 		},
 		audit:          recorder,
 		importantDates: importantdates.Service{DB: conn, Tags: tagStore},
-		decisions:      decisions.Service{DB: conn, Tags: tagStore},
+		decisions:      decisions.Service{DB: conn, Tags: tagStore, Location: decisionLocation},
 		transactions:   transactions.Service{DB: conn, Tags: tagStore},
 		tags:           tagStore,
-	}
+	}, nil
 }
 
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {

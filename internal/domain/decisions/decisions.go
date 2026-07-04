@@ -17,8 +17,10 @@ import (
 var ErrValidation = errors.New("validation failed")
 
 type Service struct {
-	DB   *sql.DB
-	Tags tags.Store
+	DB       *sql.DB
+	Tags     tags.Store
+	Location *time.Location
+	Now      func() time.Time
 }
 
 type Decision struct {
@@ -56,6 +58,11 @@ type Input struct {
 }
 
 func (s Service) List(ctx context.Context, status string) ([]Decision, error) {
+	location, err := s.location()
+	if err != nil {
+		return nil, err
+	}
+	now := s.now()
 	rows, err := s.DB.QueryContext(ctx, `SELECT id, title, background, final_choice, status, COALESCE(review_date, ''), review_note, created_at, updated_at FROM decisions ORDER BY updated_at DESC`)
 	if err != nil {
 		return nil, err
@@ -67,7 +74,7 @@ func (s Service) List(ctx context.Context, status string) ([]Decision, error) {
 		if err != nil {
 			return nil, err
 		}
-		item.Status = effectiveStatus(item)
+		item.Status = effectiveStatusAt(item, now, location)
 		if status == "" || item.Status == status {
 			items = append(items, item)
 		}
@@ -214,16 +221,26 @@ func validate(input Input) error {
 	return nil
 }
 
-func effectiveStatus(item Decision) string {
-	return effectiveStatusAt(item, time.Now())
+func (s Service) location() (*time.Location, error) {
+	if s.Location == nil {
+		return nil, fmt.Errorf("decision service location is required")
+	}
+	return s.Location, nil
 }
 
-func effectiveStatusAt(item Decision, now time.Time) string {
+func (s Service) now() time.Time {
+	if s.Now != nil {
+		return s.Now()
+	}
+	return time.Now()
+}
+
+func effectiveStatusAt(item Decision, now time.Time, location *time.Location) string {
 	if item.Status == "已归档" {
 		return item.Status
 	}
 	if item.ReviewDate != "" {
-		if _, err := time.Parse("2006-01-02", item.ReviewDate); err == nil && item.ReviewDate <= now.In(time.Local).Format("2006-01-02") {
+		if _, err := time.Parse("2006-01-02", item.ReviewDate); err == nil && item.ReviewDate <= now.In(location).Format("2006-01-02") {
 			return "待复盘"
 		}
 	}

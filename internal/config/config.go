@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -184,6 +185,9 @@ func validate(cfg Config) error {
 	}
 	if cfg.Export.MaxUploadMB <= 0 || cfg.Export.MaxImportRows <= 0 {
 		return fmt.Errorf("export limits must be positive")
+	}
+	if _, err := time.LoadLocation(cfg.Export.Timezone); err != nil {
+		return fmt.Errorf("export.timezone is invalid: %w", err)
 	}
 	return nil
 }

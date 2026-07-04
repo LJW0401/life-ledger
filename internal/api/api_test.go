@@ -385,13 +385,18 @@ func testAPI(t *testing.T) (http.Handler, *sql.DB) {
 			LoginFailureLimit:         5,
 			LoginLockMinutes:          15,
 		},
-		Export: config.ExportConfig{MaxUploadMB: 5, MaxImportRows: 5000},
+		Export: config.ExportConfig{Timezone: "Asia/Shanghai", MaxUploadMB: 5, MaxImportRows: 5000},
 	}
 	conn, err := db.Open(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return New(cfg, conn), conn
+	handler, err := New(cfg, conn)
+	if err != nil {
+		conn.Close()
+		t.Fatal(err)
+	}
+	return handler, conn
 }
 
 func request(t *testing.T, handler http.Handler, method, path, body string, cookies []*http.Cookie) *httptest.ResponseRecorder {

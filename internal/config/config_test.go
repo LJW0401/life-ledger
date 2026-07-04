@@ -27,6 +27,9 @@ func TestLoadValidConfig(t *testing.T) {
 	if cfg.Backup.Dir != filepath.Join(baseDir, "backups") {
 		t.Fatalf("expected backup dir relative to config, got %s", cfg.Backup.Dir)
 	}
+	if cfg.Export.Timezone != "Asia/Shanghai" {
+		t.Fatalf("expected default timezone, got %s", cfg.Export.Timezone)
+	}
 }
 
 func TestLoadRejectsUnsafeConfigPermission(t *testing.T) {
@@ -61,6 +64,19 @@ func TestLoadRejectsShortSessionSecret(t *testing.T) {
 	_, err := Load(path)
 	if err == nil || !strings.Contains(err.Error(), "session_secret") {
 		t.Fatalf("expected session secret error, got %v", err)
+	}
+}
+
+func TestLoadRejectsInvalidTimezone(t *testing.T) {
+	cfg := validConfig() + `
+[export]
+timezone = "Mars/Base"
+`
+	path := writeConfig(t, cfg)
+
+	_, err := Load(path)
+	if err == nil || !strings.Contains(err.Error(), "export.timezone") {
+		t.Fatalf("expected timezone error, got %v", err)
 	}
 }
 

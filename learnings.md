@@ -66,3 +66,12 @@
 - **回归测试**：`internal/api/api_test.go`、`internal/backup/backup_test.go`、`internal/excel/excel_test.go`、`internal/domain/decisions/decisions_test.go`。
 - **为什么原测试没覆盖**：原测试验证了功能可用，但没有把契约里的“全量”“一致性”“行级错误”“必填字段”和“日期语义”变成边界断言。
 - **紧急程度**：高
+
+### Bug 修复：决策复盘时区来源不稳定
+- **发现于**：新版本代码审核文档 `review-notes/code-review-2026-07-04-new-version.md`
+- **现象**：决策复盘日期按 date-only 比较后仍使用主机 `time.Local`，云服务器系统时区为 UTC 时，Asia/Shanghai 当天 00:00 到 07:59 仍不会进入 `待复盘`。
+- **根因**：领域逻辑读取进程本地时区，没有把 `config.toml` 中的应用时区作为显式依赖注入。
+- **修复**：配置加载阶段校验 `export.timezone`，API 组装层加载该时区并注入 `decisions.Service`，决策状态计算只使用注入时区。
+- **回归测试**：`internal/domain/decisions/decisions_test.go`、`internal/config/config_test.go`。
+- **为什么原测试没覆盖**：测试通过手动设置 `time.Local` 复现本地日期边界，遗漏了“主机时区和应用配置时区不同”的部署场景。
+- **紧急程度**：中

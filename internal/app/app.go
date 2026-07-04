@@ -37,6 +37,12 @@ func New(configPath string) (*App, error) {
 		return nil, err
 	}
 
+	apiHandler, err := api.New(cfg, conn)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+
 	webHandler, err := appweb.NewHandler()
 	if err != nil {
 		conn.Close()
@@ -45,7 +51,7 @@ func New(configPath string) (*App, error) {
 
 	server := &http.Server{
 		Addr:              cfg.Server.Address(),
-		Handler:           routes(api.New(cfg, conn), webHandler),
+		Handler:           routes(apiHandler, webHandler),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
