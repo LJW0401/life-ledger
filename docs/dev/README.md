@@ -11,5 +11,6 @@
 - `phase-01-mvp.md`：第一阶段 MVP 开发计划
 - `api-design.md`：HTTP API 设计草案
 - `data-model.md`：SQLite 数据模型设计
+- `deployment.md`：云服务器、Caddy、配置文件、备份和手动恢复说明
 
 开发规划文档只记录会影响实现顺序、模块边界或验收标准的内容。单纯 UI 表现和交互细节放在 `docs/ui/`。

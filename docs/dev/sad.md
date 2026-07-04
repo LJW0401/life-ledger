@@ -1,11 +1,11 @@
 # life-ledger 软件架构文档
 
 > 创建日期：2026-07-04
-> 状态：待审核
-> 版本：v0.1
+> 状态：已审核
+> 版本：v1.0
 > 模式：完整
 > 关联需求文档：`docs/dev/prd.md`
-> 关联需求状态：草案，需在 PRD 复审通过后同步复核本架构文档
+> 关联需求状态：已审核
 
 ## 1. 架构概述
 
@@ -64,7 +64,7 @@ SQLite database + config.toml + backup files
 
 | 类别 | 选择 | 版本 | 说明 |
 |------|------|------|------|
-| 后端语言 | Go | 由 `go.mod` 锁定 | 生成单个 Linux 二进制，负责 HTTP、CLI、SQLite 和静态资源内嵌。 |
+| 后端语言 | Go | 脚手架创建时在 `go.mod` 固定 toolchain | 生成单个 Linux 二进制，负责 HTTP、CLI、SQLite 和静态资源内嵌。 |
 | HTTP 路由 | `chi` | 由 `go.mod` 锁定 | 路由和 middleware 组合清晰，复杂度低于完整 Web 框架。 |
 | 数据库 | SQLite | 系统随驱动提供 | 单文件数据库，满足个人数据规模和备份迁移需求。 |
 | SQLite 驱动 | `modernc.org/sqlite` | 由 `go.mod` 锁定 | 优先保持纯 Go 构建，降低 CGO 和交叉编译复杂度。 |
@@ -73,10 +73,16 @@ SQLite database + config.toml + backup files
 | 配置解析 | `github.com/pelletier/go-toml/v2` | 由 `go.mod` 锁定 | 读取 `config.toml`。 |
 | 密码哈希 | `golang.org/x/crypto/bcrypt` | 由 `go.mod` 锁定 | 默认 cost=12。 |
 | Excel | `github.com/xuri/excelize/v2` | 由 `go.mod` 锁定 | 账单 `.xlsx` 模板、导入、导出。 |
-| 前端 | React + TypeScript + Vite | 由 `package.json` 锁定 | 三个一级页面的 SPA。 |
+| 前端 | React + TypeScript + Vite | 由 `package.json` 和 lockfile 锁定 | 三个一级页面的 SPA。 |
 | UI | Tailwind CSS + shadcn/ui | 由 `package.json` 锁定 | 适合表单、表格、弹窗和管理类界面。 |
 | 反向代理 | Caddy | 系统安装版本 | 负责 HTTPS、域名和反向代理。 |
 | 定时任务 | 暂不引入 | N/A | PRD 已移除提醒，首版不需要后台定时提醒。 |
+
+版本策略：
+
+- 项目脚手架创建时必须提交 `go.mod`、`package.json` 和前端 lockfile，锁定 Go toolchain、Node 运行基线和关键库版本。
+- 架构文档不固定补丁版本；补丁版本由依赖锁文件和安全更新流程控制。
+- 任何替换 SQLite 驱动、HTTP 路由、Excel 库或 UI 组件库的变更都必须补充 ADR。
 
 ## 3. 模块设计
 
@@ -271,6 +277,29 @@ request
   -> JSON response
 ```
 
+### 4.4 查询性能策略
+
+首版按个人数据规模设计，不引入缓存层或异步统计服务。为满足常规 API 在 5000 条以内数据量下 P95 小于 300ms 的目标，采用以下策略：
+
+- 列表 API 默认分页，默认 `page_size=50`，最大 `page_size=200`。
+- 账单、重要日期、决策和审计列表均按时间或状态排序，避免一次性返回全量数据。
+- 统计卡片和预算使用情况使用 SQLite 聚合查询实时计算，不落冗余统计表。
+- Excel 导入上限保持 5MB 和 5000 行，导入前先完成整表校验，再在单个 transaction 中写入。
+- 首版不做全文搜索；标签、分类、状态、月份和日期范围使用结构化筛选。
+
+关键索引在 `docs/dev/data-model.md` 中细化，架构层要求至少覆盖：
+
+- `transactions(date, type)`：账单列表和月份筛选。
+- `transactions(category, date)`：分类统计和预算消耗计算。
+- `transactions(include_income, date)`：收入、支出和余额统计。
+- `transactions(include_budget, category, date)`：预算消耗统计。
+- `important_dates(date, repeat_rule)`：日期页排序和重复规则筛选。
+- `decisions(status, review_date)`：决策状态分组和待复盘列表。
+- `device_sessions(token_hash)`：会话校验。
+- `device_sessions(expires_at, revoked_at)`：设备管理列表。
+- `login_failures(username, client_ip)`：登录失败限速。
+- `audit_events(occurred_at, event_type)`：安全记录查询。
+
 ## 5. 接口设计
 
 ### 5.1 内部接口
@@ -313,6 +342,13 @@ GET    /api/session
 GET    /api/devices
 DELETE /api/devices/{id}
 ```
+
+认证接口约定：
+
+- `POST /api/auth/login` 登录成功后设置 HttpOnly 登录态 Cookie，并在 JSON 响应中返回当前会话的 `csrf_token`。
+- `GET /api/session` 在登录态有效时返回当前会话、当前设备信息和新的或现有的 `csrf_token`，用于前端刷新后恢复写操作能力。
+- `POST /api/auth/logout` 和 `DELETE /api/devices/{id}` 都属于写操作，必须携带 `X-CSRF-Token`。
+- CSRF token 与设备会话绑定；退出登录或撤销设备后，对应 token 立即失效。
 
 重要日期：
 
@@ -385,10 +421,12 @@ life-ledger/
     dev/
       prd.md
       sad.md
+      sad-diagram.html
       data-model.md
       api-design.md
       roadmap.md
       phase-01-mvp.md
+      deployment.md
     ui/
   config.example.toml
   go.mod
@@ -433,6 +471,8 @@ life-ledger/
   backups/
 ```
 
+恢复说明写入 `docs/dev/deployment.md`。首版恢复流程为：停止服务，替换 `config.toml` 和数据目录，确认文件权限，再启动服务。
+
 启动方式：
 
 ```bash
@@ -464,6 +504,8 @@ scp dist/life-ledger server:/opt/life-ledger/
 后续可以补充 GitHub Actions，但不是首版架构依赖。
 
 ## 8. 安全门控命令
+
+以下命令是项目脚手架建立后的强制门控。创建 `cmd/`、`internal/` 和 `web/` 目录前，开发计划必须先落地对应脚本或调整命令名称。
 
 后端：
 
@@ -497,6 +539,7 @@ scp dist/life-ledger server:/opt/life-ledger/
 | 前后端接口漂移 | 页面可用性下降 | 中 | 后续补 `api-design.md`，接口变更先改文档和测试。 |
 | 备份包包含登录能力 | 备份泄露等同账号和数据泄露 | 中 | 备份文档明确风险；默认不上传云端；建议用户自行加密保存。 |
 | 纯 Go SQLite 驱动兼容性问题 | 构建或运行时 SQL 行为差异 | 低 | 限制 SQL 方言；用集成测试覆盖 migration 和核心 CRUD；必要时切换到 `mattn/go-sqlite3`。 |
+| 列表或统计查询退化 | 页面响应超过 300ms 目标 | 中 | 默认分页、限制 page size、为筛选字段建索引、统计使用聚合查询。 |
 
 ## 10. 架构决策记录
 
@@ -556,3 +599,9 @@ scp dist/life-ledger server:/opt/life-ledger/
   - 暂不引入：减少运行时复杂度。
 - **决策**：首版不引入定时任务库。
 - **影响**：重要日期只在页面查看时展示，不主动推送通知。
+
+## 11. 审核记录
+
+| 日期 | 审核人 | 评分 | 结果 | 备注 |
+|------|--------|------|------|------|
+| 2026-07-04 | AI Assistant | 92/100 | 通过 | 已补齐 PRD 状态、CSRF token 获取、查询性能策略、版本策略和恢复文档位置。 |
