@@ -37,7 +37,7 @@ life-ledger/
 ./life-ledger
 ```
 
-程序默认读取当前目录下的 `config.toml`。命令行参数只保留特殊场景使用的 `--config`：
+程序默认读取二进制文件所在目录下的 `config.toml`。配置中的相对 `data.dir` 和 `backup.dir` 也按 `config.toml` 所在目录解析。命令行参数只保留特殊场景使用的 `--config`：
 
 ```bash
 ./life-ledger --config /path/to/config.toml

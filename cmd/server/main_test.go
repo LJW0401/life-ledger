@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -35,6 +36,20 @@ func TestGenerateSecretCommand(t *testing.T) {
 	}
 	if got := strings.TrimSpace(out.String()); len(got) < 32 {
 		t.Fatalf("secret too short: %q", got)
+	}
+}
+
+func TestDefaultConfigPathUsesExecutableDirectory(t *testing.T) {
+	executable, err := filepath.Abs(os.Args[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	path, err := defaultConfigPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if path != filepath.Join(filepath.Dir(executable), "config.toml") {
+		t.Fatalf("default config path = %s, want executable directory", path)
 	}
 }
 

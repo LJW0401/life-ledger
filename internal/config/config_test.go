@@ -20,6 +20,13 @@ func TestLoadValidConfig(t *testing.T) {
 	if cfg.Auth.SessionDays != 7 {
 		t.Fatalf("expected default session days, got %d", cfg.Auth.SessionDays)
 	}
+	baseDir := filepath.Dir(path)
+	if cfg.Data.Dir != filepath.Join(baseDir, "data") {
+		t.Fatalf("expected data dir relative to config, got %s", cfg.Data.Dir)
+	}
+	if cfg.Backup.Dir != filepath.Join(baseDir, "backups") {
+		t.Fatalf("expected backup dir relative to config, got %s", cfg.Backup.Dir)
+	}
 }
 
 func TestLoadRejectsUnsafeConfigPermission(t *testing.T) {

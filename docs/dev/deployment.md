@@ -41,7 +41,7 @@
 ./life-ledger
 ```
 
-默认读取当前目录下的 `config.toml`。特殊场景可指定：
+默认读取二进制文件所在目录下的 `config.toml`。配置中的相对 `data.dir` 和 `backup.dir` 也按 `config.toml` 所在目录解析。特殊场景可指定：
 
 ```bash
 ./life-ledger --config /opt/life-ledger/config.toml

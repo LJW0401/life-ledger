@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 
 	"life-ledger/internal/app"
@@ -37,7 +38,11 @@ func run(args []string) error {
 		case "backup":
 			flags := flag.NewFlagSet("life-ledger backup", flag.ContinueOnError)
 			flags.SetOutput(os.Stderr)
-			configPath := flags.String("config", "config.toml", "path to config.toml")
+			defaultPath, err := defaultConfigPath()
+			if err != nil {
+				return err
+			}
+			configPath := flags.String("config", defaultPath, "path to config.toml")
 			if err := flags.Parse(args[1:]); err != nil {
 				return err
 			}
@@ -47,7 +52,11 @@ func run(args []string) error {
 
 	flags := flag.NewFlagSet("life-ledger", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
-	configPath := flags.String("config", "config.toml", "path to config.toml")
+	defaultPath, err := defaultConfigPath()
+	if err != nil {
+		return err
+	}
+	configPath := flags.String("config", defaultPath, "path to config.toml")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -63,6 +72,14 @@ func run(args []string) error {
 		return err
 	}
 	return application.Run(ctx)
+}
+
+func defaultConfigPath() (string, error) {
+	executable, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("resolve executable path: %w", err)
+	}
+	return filepath.Join(filepath.Dir(executable), "config.toml"), nil
 }
 
 func hashPassword(in io.Reader, out io.Writer) error {

@@ -68,6 +68,10 @@ type rawConfig struct {
 
 // Load reads, decodes, defaults, and validates a config file.
 func Load(path string) (Config, error) {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return Config{}, fmt.Errorf("resolve config path: %w", err)
+	}
 	info, err := os.Stat(path)
 	if err != nil {
 		return Config{}, fmt.Errorf("read config: %w", err)
@@ -98,6 +102,7 @@ func Load(path string) (Config, error) {
 	cfg.Auth.SessionSecret = raw.Auth.SessionSecret
 	cfg.Auth.SessionDays = raw.Auth.SessionDays
 	applyDefaults(&cfg)
+	resolveRelativePaths(&cfg, filepath.Dir(path))
 	if err := validate(cfg); err != nil {
 		return Config{}, err
 	}
@@ -143,6 +148,15 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Backup.Dir == "" {
 		cfg.Backup.Dir = "./backups"
+	}
+}
+
+func resolveRelativePaths(cfg *Config, baseDir string) {
+	if !filepath.IsAbs(cfg.Data.Dir) {
+		cfg.Data.Dir = filepath.Join(baseDir, cfg.Data.Dir)
+	}
+	if !filepath.IsAbs(cfg.Backup.Dir) {
+		cfg.Backup.Dir = filepath.Join(baseDir, cfg.Backup.Dir)
 	}
 }
 
