@@ -2,9 +2,9 @@
 release.md - Release notes consumed by GitHub Actions when a version tag is pushed.
 Update release-version before tagging; CI fails if it does not equal the tag.
 -->
-<!-- release-version: v0.1.0 -->
+<!-- release-version: v0.0.1-preview -->
 
-# Release v0.1.0
+# Release v0.0.1-preview
 
 Initial preview release for personal deployment.
 
