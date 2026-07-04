@@ -16,3 +16,6 @@ backups/
 coverage/
 playwright-report/
 test-results/
+
+# Local review notes.
+review-notes/
