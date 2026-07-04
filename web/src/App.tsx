@@ -11,6 +11,15 @@ type Device = {
   revoked_at: string | null
   current: boolean
 }
+type ImportantDate = {
+  id: string
+  title: string
+  date: string
+  date_type: string
+  repeat_rule: string
+  note: string
+  tags: string[]
+}
 
 const routes: Array<{
   path: Route
@@ -52,6 +61,8 @@ export function App() {
   const [csrfToken, setCsrfToken] = useState('')
   const [loginError, setLoginError] = useState('')
   const [devices, setDevices] = useState<Device[]>([])
+  const [importantDates, setImportantDates] = useState<ImportantDate[]>([])
+  const [dateError, setDateError] = useState('')
   const current = useMemo(() => {
     return routes.find((route) => route.path === currentPath) ?? routes[0]
   }, [currentPath])
@@ -74,6 +85,7 @@ export function App() {
     const payload = (await response.json()) as { csrf_token: string }
     setCsrfToken(payload.csrf_token)
     setAuthStatus('authenticated')
+    void loadImportantDates()
   }
 
   async function login(event: FormEvent<HTMLFormElement>) {
@@ -96,6 +108,7 @@ export function App() {
     const payload = (await response.json()) as { csrf_token: string }
     setCsrfToken(payload.csrf_token)
     setAuthStatus('authenticated')
+    await loadImportantDates()
   }
 
   async function logout() {
@@ -117,6 +130,57 @@ export function App() {
     }
     const payload = (await response.json()) as { items: Device[] }
     setDevices(payload.items)
+  }
+
+  async function loadImportantDates() {
+    const response = await fetch('/api/important-dates')
+    if (!response.ok) {
+      return
+    }
+    const payload = (await response.json()) as { items: ImportantDate[] }
+    setImportantDates(payload.items ?? [])
+  }
+
+  async function createImportantDate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formElement = event.currentTarget
+    setDateError('')
+    const form = new FormData(formElement)
+    const tags = String(form.get('tags') ?? '')
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+    const response = await fetch('/api/important-dates', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({
+        title: form.get('title'),
+        date: form.get('date'),
+        date_type: form.get('date_type'),
+        repeat_rule: form.get('repeat_rule'),
+        note: form.get('note'),
+        tags
+      })
+    })
+    if (!response.ok) {
+      setDateError('保存失败')
+      return
+    }
+    formElement.reset()
+    await loadImportantDates()
+  }
+
+  async function deleteImportantDate(id: string) {
+    const response = await fetch(`/api/important-dates/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': csrfToken }
+    })
+    if (response.ok) {
+      await loadImportantDates()
+    }
   }
 
   if (authStatus === 'checking') {
@@ -201,16 +265,89 @@ export function App() {
           <input aria-label="搜索" placeholder="搜索" />
           <button type="button">筛选</button>
         </div>
-        <section className="list" aria-label={`${current.title}列表`}>
-          {current.rows.map((row) => (
-            <article className="item" key={row}>
-              <span>{row}</span>
-              <button type="button">编辑</button>
-            </article>
-          ))}
-        </section>
+        {current.path === '/important-dates' ? (
+          <ImportantDatesPage
+            items={importantDates}
+            error={dateError}
+            onCreate={createImportantDate}
+            onDelete={deleteImportantDate}
+          />
+        ) : (
+          <section className="list" aria-label={`${current.title}列表`}>
+            {current.rows.map((row) => (
+              <article className="item" key={row}>
+                <span>{row}</span>
+                <button type="button">编辑</button>
+              </article>
+            ))}
+          </section>
+        )}
       </section>
     </main>
+  )
+}
+
+function ImportantDatesPage({
+  items,
+  error,
+  onCreate,
+  onDelete
+}: {
+  items: ImportantDate[]
+  error: string
+  onCreate: (event: FormEvent<HTMLFormElement>) => void
+  onDelete: (id: string) => void
+}) {
+  return (
+    <section className="date-layout">
+      <form className="date-form" onSubmit={onCreate}>
+        <label>
+          标题
+          <input name="title" />
+        </label>
+        <label>
+          日期
+          <input name="date" type="date" />
+        </label>
+        <label>
+          类型
+          <input name="date_type" />
+        </label>
+        <label>
+          重复
+          <select name="repeat_rule" defaultValue="不重复">
+            <option>不重复</option>
+            <option>每年</option>
+            <option>每月</option>
+            <option>每周</option>
+          </select>
+        </label>
+        <label>
+          标签
+          <input name="tags" />
+        </label>
+        <label>
+          备注
+          <input name="note" />
+        </label>
+        {error ? <p className="error">{error}</p> : null}
+        <button type="submit">保存日期</button>
+      </form>
+      <section className="list" aria-label="重要日期列表">
+        {items.length === 0 ? <p className="empty">暂无记录</p> : null}
+        {items.map((item) => (
+          <article className="item" key={item.id}>
+            <span>
+              {item.title} · {item.date} · {item.repeat_rule}
+              {item.tags.length > 0 ? ` · ${item.tags.join(', ')}` : ''}
+            </span>
+            <button type="button" onClick={() => onDelete(item.id)}>
+              删除
+            </button>
+          </article>
+        ))}
+      </section>
+    </section>
   )
 }
 

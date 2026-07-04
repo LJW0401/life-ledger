@@ -56,3 +56,22 @@ test('login session can list devices and logout', async ({ page }) => {
   await page.getByRole('button', { name: '退出' }).click()
   await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
 })
+
+test('important dates can be created and deleted', async ({ page }) => {
+  await page.goto('/important-dates')
+  await login(page)
+  await page.getByLabel('标题').fill('护照到期自动化')
+  await page.getByLabel('日期', { exact: true }).fill('2026-12-01')
+  await page.getByLabel('类型').fill('证件')
+  await page.getByLabel('标签').fill('证件,家庭')
+  const createResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/important-dates') && response.request().method() === 'POST'
+  )
+  await page.getByRole('button', { name: '保存日期' }).click()
+  expect((await createResponse).status()).toBe(201)
+  await expect(page.getByLabel('重要日期列表')).toContainText('护照到期自动化')
+  await expect(page.getByLabel('重要日期列表')).toContainText('证件')
+  await page.getByRole('button', { name: '删除' }).click()
+  await expect(page.getByLabel('重要日期列表')).not.toContainText('护照到期自动化')
+})

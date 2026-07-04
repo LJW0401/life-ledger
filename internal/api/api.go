@@ -12,23 +12,30 @@ import (
 	"life-ledger/internal/audit"
 	"life-ledger/internal/auth"
 	"life-ledger/internal/config"
+	"life-ledger/internal/domain/importantdates"
+	"life-ledger/internal/domain/tags"
 	"life-ledger/internal/security"
 )
 
 type API struct {
-	auth  auth.Service
-	audit audit.Recorder
+	auth           auth.Service
+	audit          audit.Recorder
+	importantDates importantdates.Service
+	tags           tags.Store
 }
 
 func New(cfg config.Config, conn *sql.DB) http.Handler {
 	recorder := audit.Recorder{DB: conn}
+	tagStore := tags.Store{DB: conn}
 	return &API{
 		auth: auth.Service{
 			DB:     conn,
 			Config: cfg,
 			Audit:  recorder,
 		},
-		audit: recorder,
+		audit:          recorder,
+		importantDates: importantdates.Service{DB: conn, Tags: tagStore},
+		tags:           tagStore,
 	}
 }
 
@@ -59,6 +66,14 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.session(w, r, session)
 	case r.URL.Path == "/api/auth/logout" && r.Method == http.MethodPost:
 		a.logout(w, r, session)
+	case r.URL.Path == "/api/important-dates" && r.Method == http.MethodGet:
+		a.listImportantDates(w, r)
+	case r.URL.Path == "/api/important-dates" && r.Method == http.MethodPost:
+		a.createImportantDate(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/important-dates/"):
+		a.importantDateByID(w, r, session)
+	case r.URL.Path == "/api/tags" && r.Method == http.MethodGet:
+		a.listTags(w, r)
 	case r.URL.Path == "/api/devices" && r.Method == http.MethodGet:
 		a.devices(w, r, session)
 	case strings.HasPrefix(r.URL.Path, "/api/devices/") && r.Method == http.MethodDelete:
@@ -132,6 +147,85 @@ func (a *API) devices(w http.ResponseWriter, r *http.Request, session auth.Sessi
 	writeJSON(w, http.StatusOK, map[string]any{"items": items})
 }
 
+func (a *API) listImportantDates(w http.ResponseWriter, r *http.Request) {
+	items, err := a.importantDates.List(r.Context(), r.URL.Query().Get("tag"))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "读取重要日期失败")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+func (a *API) createImportantDate(w http.ResponseWriter, r *http.Request) {
+	var input importantdates.Input
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+		return
+	}
+	item, err := a.importantDates.Create(r.Context(), input)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
+}
+
+func (a *API) importantDateByID(w http.ResponseWriter, r *http.Request, session auth.Session) {
+	id := strings.TrimPrefix(r.URL.Path, "/api/important-dates/")
+	if id == "" {
+		writeError(w, http.StatusNotFound, "not_found", "资源不存在")
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		item, err := a.importantDates.Get(r.Context(), id)
+		if err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, item)
+	case http.MethodPut:
+		var input importantdates.Input
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeError(w, http.StatusBadRequest, "validation_failed", "请求体不是合法 JSON")
+			return
+		}
+		item, err := a.importantDates.Update(r.Context(), id, input)
+		if err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, item)
+	case http.MethodDelete:
+		if err := a.importantDates.Delete(r.Context(), id); err != nil {
+			writeDomainError(w, err)
+			return
+		}
+		clientIP := security.ClientIP(r, a.auth.Config.Security.TrustedProxies)
+		_ = a.audit.Record(r.Context(), audit.Event{
+			EventType:    "delete_important_date",
+			ClientIP:     clientIP,
+			DeviceID:     session.ID,
+			UserAgent:    r.UserAgent(),
+			ResourceType: "important_date",
+			ResourceID:   id,
+			Result:       "success",
+		})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	default:
+		writeError(w, http.StatusNotFound, "not_found", "接口不存在")
+	}
+}
+
+func (a *API) listTags(w http.ResponseWriter, r *http.Request) {
+	items, err := a.tags.Search(r.Context(), r.URL.Query().Get("query"))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "读取标签失败")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
 func (a *API) revokeDevice(w http.ResponseWriter, r *http.Request, session auth.Session) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/devices/")
 	if id == "" {
@@ -171,6 +265,17 @@ func writeError(w http.ResponseWriter, status int, code string, message string) 
 			"details": []any{},
 		},
 	})
+}
+
+func writeDomainError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, importantdates.ErrValidation):
+		writeError(w, http.StatusBadRequest, "validation_failed", "请求参数不合法")
+	case errors.Is(err, sql.ErrNoRows):
+		writeError(w, http.StatusNotFound, "not_found", "资源不存在")
+	default:
+		writeError(w, http.StatusInternalServerError, "internal_error", "服务端错误")
+	}
 }
 
 func errorCode(err error) string {

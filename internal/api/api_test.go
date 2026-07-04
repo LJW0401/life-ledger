@@ -94,6 +94,55 @@ func TestThirdPartyOriginDoesNotGetWildcardCORS(t *testing.T) {
 	}
 }
 
+func TestImportantDatesCRUDTagsAndAudit(t *testing.T) {
+	handler, conn := testAPI(t)
+	defer conn.Close()
+
+	unauthorized := request(t, handler, http.MethodGet, "/api/important-dates", "", nil)
+	if unauthorized.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthorized status = %d", unauthorized.Code)
+	}
+
+	cookie, csrf := loginForTest(t, handler)
+	invalid := requestWithHeaders(t, handler, http.MethodPost, "/api/important-dates", `{"title":"","date":"2026-12-01","date_type":"证件"}`, []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid create status = %d", invalid.Code)
+	}
+
+	create := requestWithHeaders(t, handler, http.MethodPost, "/api/important-dates", `{"title":"护照到期","date":"2026-12-01","date_type":"证件","repeat_rule":"不重复","tags":["证件","家庭"]}`, []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if create.Code != http.StatusCreated {
+		t.Fatalf("create status = %d body = %s", create.Code, create.Body.String())
+	}
+	id := jsonString(t, create.Body.Bytes(), "id")
+
+	list := request(t, handler, http.MethodGet, "/api/important-dates?tag=证件", "", []*http.Cookie{cookie})
+	if list.Code != http.StatusOK || !bytes.Contains(list.Body.Bytes(), []byte("护照到期")) {
+		t.Fatalf("list status = %d body = %s", list.Code, list.Body.String())
+	}
+
+	tagList := request(t, handler, http.MethodGet, "/api/tags?query=证", "", []*http.Cookie{cookie})
+	if tagList.Code != http.StatusOK || !bytes.Contains(tagList.Body.Bytes(), []byte("证件")) {
+		t.Fatalf("tag list status = %d body = %s", tagList.Code, tagList.Body.String())
+	}
+
+	missingCSRF := request(t, handler, http.MethodDelete, "/api/important-dates/"+id, "", []*http.Cookie{cookie})
+	if missingCSRF.Code != http.StatusForbidden {
+		t.Fatalf("delete without csrf status = %d", missingCSRF.Code)
+	}
+
+	deleted := requestWithHeaders(t, handler, http.MethodDelete, "/api/important-dates/"+id, "", []*http.Cookie{cookie}, map[string]string{"X-CSRF-Token": csrf})
+	if deleted.Code != http.StatusOK {
+		t.Fatalf("delete status = %d body = %s", deleted.Code, deleted.Body.String())
+	}
+	var auditCount int
+	if err := conn.QueryRow(`SELECT COUNT(1) FROM audit_events WHERE event_type = 'delete_important_date' AND resource_id = ?`, id).Scan(&auditCount); err != nil {
+		t.Fatal(err)
+	}
+	if auditCount != 1 {
+		t.Fatalf("expected delete audit event, got %d", auditCount)
+	}
+}
+
 func testAPI(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 	dir := t.TempDir()
@@ -143,6 +192,15 @@ func requestWithHeaders(t *testing.T, handler http.Handler, method, path, body s
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	return rec
+}
+
+func loginForTest(t *testing.T, handler http.Handler) (*http.Cookie, string) {
+	t.Helper()
+	login := request(t, handler, http.MethodPost, "/api/auth/login", `{"username":"admin","password":"password","device_name":"Test device"}`, nil)
+	if login.Code != http.StatusOK {
+		t.Fatalf("login status = %d body = %s", login.Code, login.Body.String())
+	}
+	return login.Result().Cookies()[0], jsonString(t, login.Body.Bytes(), "csrf_token")
 }
 
 func jsonString(t *testing.T, content []byte, key string) string {

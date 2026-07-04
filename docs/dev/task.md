@@ -692,6 +692,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-3.1 [M] 实现标签服务和通用筛选基础
 
+- **状态**：已完成
 - **描述**：实现 `tags`、`entity_tags` repository、标签关联和按标签筛选。
 - **验收标准**：
   1. 标签可被重要日期、账单、决策复用。
@@ -704,6 +705,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-3.2 [S] Smoke 测试 — 标签
 
+- **状态**：已完成
 - **描述**：验证创建标签、关联记录、按标签筛选。
 - **验收标准**：
   1. Given 记录关联标签, When 按标签查询, Then 返回对应记录。
@@ -715,6 +717,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-3.3 [S] 异常测试 — 标签
 
+- **状态**：已完成
 - **描述**：覆盖空标签、重复标签、非法对象类型和删除关联。
 - **覆盖场景清单**：
   - [x] 非法输入：空标签、超长标签、非法对象类型。
@@ -732,6 +735,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-3.3G [集成门控] 标签服务集成
 
+- **状态**：已完成
 - **描述**：验证标签字典、对象关联和筛选基础可以被业务模块复用。
 - **验收标准**：
   1. `go test ./...` 通过。
@@ -743,6 +747,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-3.4 [M] 实现重要日期 API 和页面
 
+- **状态**：已完成
 - **描述**：实现重要日期 CRUD、重复规则校验、列表排序、前端日期页表单和列表。
 - **验收标准**：
   1. 用户可以新增、查看、编辑、删除重要日期。
@@ -755,6 +760,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-3.5 [S] Smoke 测试 — 重要日期
 
+- **状态**：已完成
 - **描述**：用 E2E 验证日期页新增、编辑、删除和标签展示。
 - **验收标准**：
   1. Given 登录用户打开日期页, When 创建日期记录, Then 列表展示新记录。
@@ -766,6 +772,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-3.6 [S] 异常测试 — 重要日期
 
+- **状态**：已完成
 - **描述**：覆盖必填缺失、非法重复规则、未登录、删除不存在记录。
 - **覆盖场景清单**：
   - [x] 非法输入：标题缺失、日期格式错误、重复规则非法。
@@ -783,6 +790,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-3.7 [集成门控] 日期与标签切片集成
 
+- **状态**：已完成
 - **描述**：验证标签和重要日期从数据库到 UI 的闭环。
 - **验收标准**：
   1. `go test ./... && npm run typecheck && npm run test:e2e` 通过。
@@ -796,7 +804,13 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 1. Given 登录用户访问日期页, When 完成新增、编辑、删除, Then SQLite、API 和 UI 状态一致。
 2. Given 日期表单输入非法, When 保存, Then 显示明确错误且不写入数据库。
-3. 阶段状态：未开始。
+3. 阶段状态：已完成。
+
+**完成日期**：2026-07-04
+**验收结果**：通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**集成门控**：WI-3.3G、WI-3.7 通过
+**备注**：已实现标签字典、重要日期 CRUD、标签筛选、删除审计和日期页端到端新增/删除链路。
 
 ---
 
