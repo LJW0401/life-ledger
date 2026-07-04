@@ -424,9 +424,8 @@ life-ledger/
       sad-diagram.html
       data-model.md
       api-design.md
-      roadmap.md
-      phase-01-mvp.md
       deployment.md
+      task.md
     ui/
   config.example.toml
   go.mod

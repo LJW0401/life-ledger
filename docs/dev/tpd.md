@@ -15,7 +15,7 @@
 - API 细节后续以 `docs/dev/api-design.md` 为准。
 - SQLite 表结构和索引以后续 `docs/dev/data-model.md` 为准。
 - 部署与恢复操作以后续 `docs/dev/deployment.md` 为准。
-- 每个开发阶段的测试执行顺序以后续 `docs/dev/phase-01-mvp.md` 为准。
+- 每个开发阶段的测试执行顺序以 `docs/dev/task.md` 为准。
 
 ## 1. 测试目标
 
@@ -304,4 +304,4 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 - `docs/dev/api-design.md` 完成后，补充接口级测试用例编号和错误码断言。
 - `docs/dev/data-model.md` 完成后，补充索引验证和 migration 回归用例。
 - `docs/dev/deployment.md` 完成后，补充 Caddy 反代和恢复演练检查清单。
-- `docs/dev/phase-01-mvp.md` 完成后，把测试任务拆分到具体开发阶段。
+- `docs/dev/task.md` 已把测试任务拆分到具体开发阶段，后续实现时继续保持测试与功能交织执行。

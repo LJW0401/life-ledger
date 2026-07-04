@@ -143,6 +143,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-0.1 [S] 编写数据模型设计文档
 
+- **状态**：已完成
 - **描述**：创建 `docs/dev/data-model.md`，定义 SQLite 表、字段、索引、migration 顺序和约束。
 - **验收标准**：
   1. 覆盖 PRD 数据对象：重要日期、账单、预算、决策、标签、设备会话、登录失败、审计、备份元数据。
@@ -155,6 +156,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-0.2 [S] 编写 API 设计文档
 
+- **状态**：已完成
 - **描述**：创建 `docs/dev/api-design.md`，定义 REST 路由、请求体、响应体、错误码和认证/CSRF 约定。
 - **验收标准**：
   1. 覆盖 SAD 中列出的认证、日期、账单、预算、Excel、决策 API。
@@ -167,6 +169,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-0.3 [S] 编写部署与恢复文档
 
+- **状态**：已完成
 - **描述**：创建 `docs/dev/deployment.md`，定义 Linux 部署目录、Caddy 反代、权限、备份和手动恢复流程。
 - **验收标准**：
   1. 覆盖单二进制、`config.toml`、数据目录、Caddy、备份包、手动恢复。
@@ -179,6 +182,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-0.4 [集成门控] 文档一致性检查
 
+- **状态**：已完成
 - **描述**：校验 PRD、SAD、TPD、API、数据模型、部署文档之间的命名和约束一致。
 - **验收标准**：
   1. 旧文件名、已移除范围和安全约束在文档中表达一致；允许在“排除项、禁止项、ADR 背景”中出现说明性文字。
@@ -192,7 +196,13 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 1. Given 开发者开始编码, When 查阅 `docs/dev/`, Then API、数据模型和部署恢复细节均有对应文档。
 2. Given 后续实现发现接口或表结构变化, When 修改设计, Then 同步更新对应文档。
-3. 阶段状态：未开始。
+3. 阶段状态：已完成。
+
+**完成日期**：2026-07-04
+**验收结果**：通过
+**安全门控**：`git diff --check` 通过
+**集成门控**：WI-0.4 通过
+**备注**：已补齐 API、数据模型、部署恢复三份详细设计文档，后续实现以这些契约为准。
 
 ---
 

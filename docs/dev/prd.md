@@ -13,7 +13,7 @@
 - UI 结构和页面原型见 `docs/ui/`
 - API 细节后续写入 `docs/dev/api-design.md`
 - SQLite 表结构后续写入 `docs/dev/data-model.md`
-- 阶段拆分后续写入 `docs/dev/roadmap.md` 和 `docs/dev/phase-01-mvp.md`
+- 阶段拆分写入 `docs/dev/task.md`
 
 ## 1. 项目概述
 
@@ -620,9 +620,8 @@ PRD 确认后，建议按以下顺序补齐开发文档：
 
 1. `docs/dev/data-model.md`
 2. `docs/dev/api-design.md`
-3. `docs/dev/roadmap.md`
-4. `docs/dev/phase-01-mvp.md`
-5. `docs/dev/deployment.md`
+3. `docs/dev/deployment.md`
+4. `docs/dev/task.md`
 
 ## 10. 审核记录
 
