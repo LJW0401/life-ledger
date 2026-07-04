@@ -5,7 +5,7 @@
     "dev": "vite --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node -e \"require('node:fs').writeFileSync('dist/.keep', 'placeholder for Go embed before the frontend build runs\\n')\"",
     "test:e2e": "npm run build && playwright test"
   },
   "dependencies": {

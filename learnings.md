@@ -90,3 +90,9 @@
 - **回归测试**：`make check-workflows`、`make ci`。
 - **为什么原测试没覆盖**：`actionlint` 只能校验 workflow 语法，不能识别 `npm exec` 与被执行命令参数之间的语义边界。
 - **紧急程度**：中
+
+### 快速功能：构建后恢复 dist 占位文件
+- **类型**：技术债
+- **描述**：Vite 构建会清空 `web/dist/`，导致用于 Go embed 干净 checkout 编译的 `.keep` 被删除，构建后工作区变脏。
+- **建议处理方式**：占位文件由前端 `npm run build` 在 Vite 构建后统一恢复，避免依赖人工补回或关闭 Vite 清理。
+- **紧急程度**：低
