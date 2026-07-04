@@ -75,3 +75,9 @@
 - **回归测试**：`internal/domain/decisions/decisions_test.go`、`internal/config/config_test.go`。
 - **为什么原测试没覆盖**：测试通过手动设置 `time.Local` 复现本地日期边界，遗漏了“主机时区和应用配置时区不同”的部署场景。
 - **紧急程度**：中
+
+### 快速功能：GitHub CI 和 Release 自动化
+- **类型**：架构洞察
+- **描述**：GitHub Actions 的 tag release 工作流必须先存在于默认分支，之后推送新标签才会触发；本地新分支上的工作流不会处理已经推过的旧标签。
+- **建议处理方式**：先合并工作流到 `main`，再创建并推送 `v*` 标签；如果要重发同一版本，应删除失败 release 或改用新标签。
+- **紧急程度**：低
