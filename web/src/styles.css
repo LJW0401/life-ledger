@@ -65,6 +65,40 @@ input {
   width: 100%;
 }
 
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-form {
+  display: grid;
+  gap: 16px;
+  width: min(360px, 100%);
+  border: 1px solid #dde3db;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 24px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 6px;
+  color: #47524a;
+}
+
+.login-form input {
+  min-height: 38px;
+  border: 1px solid #c9d0c8;
+  border-radius: 8px;
+  padding: 0 12px;
+}
+
+.error {
+  color: #9f1d1d;
+}
+
 .page-header {
   display: flex;
   align-items: flex-start;
@@ -91,6 +125,33 @@ button {
   min-height: 38px;
   padding: 0 14px;
   cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.devices {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.device {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #dde3db;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px 14px;
+}
+
+.device span,
+.device small {
+  color: #637064;
 }
 
 .toolbar {

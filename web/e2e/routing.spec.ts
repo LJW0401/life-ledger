@@ -1,12 +1,21 @@
 import { expect, test } from '@playwright/test'
 
-test('root redirects to the important dates page', async ({ page }) => {
+async function login(page: import('@playwright/test').Page) {
+  await page.getByLabel('用户名').fill('admin')
+  await page.getByLabel('密码').fill('password')
+  await page.getByRole('button', { name: '登录' }).click()
+  await expect(page.getByRole('heading', { name: '重要日期' })).toBeVisible()
+}
+
+test('unauthenticated root shows login after redirect', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveURL('/important-dates')
-  await expect(page.getByRole('heading', { name: '重要日期' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
 })
 
 test('three primary pages survive direct refresh', async ({ page }) => {
+  await page.goto('/important-dates')
+  await login(page)
   for (const [path, heading, navLabel] of [
     ['/important-dates', '重要日期', '日期'],
     ['/transactions', '账单流水', '账单'],
@@ -20,6 +29,14 @@ test('three primary pages survive direct refresh', async ({ page }) => {
 })
 
 test('unknown api returns json 404', async ({ request }) => {
+  const loginResponse = await request.post('/api/auth/login', {
+    data: {
+      username: 'admin',
+      password: 'password',
+      device_name: 'API test'
+    }
+  })
+  expect(loginResponse.status()).toBe(200)
   const response = await request.get('/api/not-found')
   expect(response.status()).toBe(404)
   expect(response.headers()['content-type']).toContain('application/json')
@@ -31,7 +48,11 @@ test('unknown non-api route falls back to spa', async ({ page }) => {
   await expect(page.getByText('life-ledger')).toBeVisible()
 })
 
-test.skip('protected routes show login after auth implementation', async () => {
-  // Stage 2 introduces authentication. This pending test prevents pretending
-  // that protected route behavior is already implemented in the stage 1 shell.
+test('login session can list devices and logout', async ({ page }) => {
+  await page.goto('/important-dates')
+  await login(page)
+  await page.getByRole('button', { name: '设备' }).click()
+  await expect(page.getByLabel('登录设备')).toContainText('当前设备')
+  await page.getByRole('button', { name: '退出' }).click()
+  await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
 })

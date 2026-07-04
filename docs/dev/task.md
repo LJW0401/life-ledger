@@ -452,6 +452,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-2.1 [M] 实现单用户登录、退出和安全配置命令
 
+- **状态**：已完成
 - **描述**：实现 bcrypt 登录、HttpOnly Cookie、`hash-password`、`generate-secret` 和退出登录。
 - **验收标准**：
   1. 正确凭据登录成功，错误凭据不创建登录态。
@@ -464,6 +465,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-2.2 [S] Smoke 测试 — 登录退出
 
+- **状态**：已完成
 - **描述**：覆盖登录页、登录成功、受保护页面访问和退出登录。
 - **验收标准**：
   1. Given 用户输入正确凭据, When 登录, Then 进入业务页面。
@@ -475,6 +477,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-2.3 [S] 异常测试 — 登录和辅助命令
 
+- **状态**：已完成
 - **描述**：覆盖错误凭据、缺失配置、短密钥和辅助命令失败。
 - **覆盖场景清单**：
   - [x] 非法输入：错误密码、空用户名、短 `session_secret`。
@@ -492,6 +495,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-2.3G [集成门控] 登录退出集成
 
+- **状态**：已完成
 - **描述**：验证登录、退出、辅助命令和未登录拦截形成可用闭环。
 - **验收标准**：
   1. `go test ./... && npm run test:e2e` 通过。
@@ -503,6 +507,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-2.4 [M] 实现设备会话和登录失败限速
 
+- **状态**：已完成
 - **描述**：实现设备记录、session token 哈希、7 天固定过期、设备撤销、SQLite 持久化限速。
 - **验收标准**：
   1. 登录成功创建设备会话，数据库只保存 token 哈希。
@@ -515,6 +520,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-2.5 [S] Smoke 测试 — 设备会话
 
+- **状态**：已完成
 - **描述**：验证同一设备 7 天内免登录、设备列表和撤销流程。
 - **验收标准**：
   1. Given 有效 Cookie, When 访问页面, Then 不要求重新登录。
@@ -526,6 +532,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-2.6 [S] 异常测试 — 设备会话和限速
 
+- **状态**：已完成
 - **描述**：覆盖过期、撤销、不存在 token、锁定和重启恢复。
 - **覆盖场景清单**：
   - [x] 边界值：会话刚好过期。
@@ -544,6 +551,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-2.7 [集成门控] 认证基础集成
 
+- **状态**：已完成
 - **描述**：验证登录、设备、限速和受保护路由已经形成闭环。
 - **验收标准**：
   1. `go test ./... && npm run test:e2e` 通过。
@@ -555,6 +563,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：CI 门控/本地完整门控命令。
 #### WI-2.8 [M] 实现 CSRF、CORS、安全响应头和可信反代 IP
 
+- **状态**：已完成
 - **描述**：实现 CSRF token 获取与校验、基础安全头、禁止跨源 API、可信反代 IP 解析。
 - **验收标准**：
   1. 登录响应和 `GET /api/session` 返回 `csrf_token`。
@@ -567,6 +576,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-2.9 [S] Smoke 测试 — CSRF 与安全头
 
+- **状态**：已完成
 - **描述**：验证正确 token 的写请求可通过，响应包含安全头。
 - **验收标准**：
   1. Given 登录态和正确 token, When 发起写请求, Then 请求进入业务 handler。
@@ -578,6 +588,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-2.10 [S] 异常测试 — CSRF、CORS 和可信 IP
 
+- **状态**：已完成
 - **描述**：覆盖缺失 token、错误 token、跨域请求和伪造代理头。
 - **覆盖场景清单**：
   - [x] 权限/认证：缺失、错误、过期 CSRF token。
@@ -596,6 +607,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-2.10G [集成门控] CSRF 与安全头集成
 
+- **状态**：已完成
 - **描述**：验证 CSRF、CORS、安全响应头和可信反代 IP 解析可以共同保护 API。
 - **验收标准**：
   1. `go test ./...` 通过。
@@ -607,6 +619,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-2.11 [M] 实现审计事件和日志脱敏
 
+- **状态**：已完成
 - **描述**：实现 `audit_events` 写入、审计查询基础、日志脱敏工具和安全事件调用点。
 - **验收标准**：
   1. 登录、退出、设备创建、设备撤销、配置安全失败写入审计。
@@ -619,6 +632,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-2.12 [S] Smoke 测试 — 审计事件
 
+- **状态**：已完成
 - **描述**：验证登录、退出、设备撤销能写入 `audit_events`。
 - **验收标准**：
   1. Given 发生安全事件, When 查询审计表, Then 存在脱敏结构化事件。
@@ -630,6 +644,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-2.13 [S] 异常测试 — 审计和脱敏
 
+- **状态**：已完成
 - **描述**：覆盖数据库不可用前的启动失败、敏感值泄露和删除事件脱敏。
 - **覆盖场景清单**：
   - [x] 失败依赖：数据库尚不可用时配置权限检查失败。
@@ -647,6 +662,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-2.14 [集成门控] 安全底座集成
 
+- **状态**：已完成
 - **描述**：验证认证、设备、限速、CSRF、安全头、可信 IP 和审计集成状态。
 - **验收标准**：
   1. `go test ./... && go test -race ./... && npm run test:e2e` 通过。
@@ -660,7 +676,13 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 1. Given 未登录用户访问业务页面或 API, When 请求到达服务端, Then 被登录页或 401 拦截。
 2. Given 已登录用户发起写请求, When 缺失 CSRF token, Then 返回 403 且业务数据不变。
-3. 阶段状态：未开始。
+3. 阶段状态：已完成。
+
+**完成日期**：2026-07-04
+**验收结果**：通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**集成门控**：WI-2.3G、WI-2.7、WI-2.10G、WI-2.14 通过
+**备注**：已实现应用内登录、设备会话、限速、CSRF、安全响应头、可信反代 IP、审计写入和登录态前端接入。
 
 ---
 

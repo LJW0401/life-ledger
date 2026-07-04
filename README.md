@@ -43,6 +43,13 @@ life-ledger/
 ./life-ledger --config /path/to/config.toml
 ```
 
+首次部署前生成安全配置值：
+
+```bash
+./life-ledger hash-password
+./life-ledger generate-secret
+```
+
 ## 本地开发
 
 首次准备依赖：

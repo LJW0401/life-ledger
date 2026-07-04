@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"life-ledger/internal/api"
 	"life-ledger/internal/config"
 	"life-ledger/internal/db"
 	appweb "life-ledger/internal/web"
@@ -44,7 +45,7 @@ func New(configPath string) (*App, error) {
 
 	server := &http.Server{
 		Addr:              cfg.Server.Address(),
-		Handler:           routes(webHandler),
+		Handler:           routes(api.New(cfg, conn), webHandler),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -87,13 +88,9 @@ func Serve(ctx context.Context, server *http.Server) error {
 	}
 }
 
-func routes(webHandler http.Handler) http.Handler {
+func routes(apiHandler http.Handler, webHandler http.Handler) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"error":{"code":"not_found","message":"接口不存在","details":[]}}`))
-	})
+	mux.Handle("/api/", apiHandler)
 	mux.Handle("/", webHandler)
 	return securityHeaders(mux)
 }

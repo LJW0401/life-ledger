@@ -17,7 +17,7 @@ database = "life-ledger.db"
 
 [auth]
 username = "admin"
-password_hash = "test-hash"
+password_hash = "$2a$12$d56nYheYVwS2GgyLM1HtbO6x3CemahxbtPZGFfly.X4bQoGIJJTYy"
 session_secret = "01234567890123456789012345678901"
 CONFIG
 

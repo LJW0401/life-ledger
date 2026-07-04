@@ -3,13 +3,20 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
+	"strings"
 
 	"life-ledger/internal/app"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
@@ -20,6 +27,15 @@ func main() {
 }
 
 func run(args []string) error {
+	if len(args) > 0 {
+		switch args[0] {
+		case "hash-password":
+			return hashPassword(os.Stdin, os.Stdout)
+		case "generate-secret":
+			return generateSecret(os.Stdout)
+		}
+	}
+
 	flags := flag.NewFlagSet("life-ledger", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
 	configPath := flags.String("config", "config.toml", "path to config.toml")
@@ -38,4 +54,33 @@ func run(args []string) error {
 		return err
 	}
 	return application.Run(ctx)
+}
+
+func hashPassword(in io.Reader, out io.Writer) error {
+	fmt.Fprint(out, "Password: ")
+	reader := bufio.NewReader(in)
+	password, err := reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("read password: %w", err)
+	}
+	password = strings.TrimRight(password, "\r\n")
+	if password == "" {
+		return fmt.Errorf("password must not be empty")
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, string(hash))
+	return nil
+}
+
+func generateSecret(out io.Writer) error {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return fmt.Errorf("generate secret: %w", err)
+	}
+	fmt.Fprintln(out, base64.RawURLEncoding.EncodeToString(buf))
+	return nil
 }
