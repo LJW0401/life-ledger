@@ -1,3 +1,6 @@
+# .github/workflows/release.yml -- v* tag release automation.
+# Build details are delegated to Makefile targets to keep local and release
+# binaries on the same path.
 name: Release
 
 on:
@@ -13,65 +16,71 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build and publish
+  validate-release:
+    name: Validate release notes
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Validate release notes
+        run: make check-release-notes VERSION="${GITHUB_REF_NAME}"
+
+  build:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    needs: validate-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+
+    steps:
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Install frontend dependencies
-        run: npm ci --prefix web
-
       - name: Build embedded frontend
-        run: npm run build
+        run: make web-build
 
-      - name: Build release archives
+      - name: Cross-build
         shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
         run: |
           set -euo pipefail
+          out="life-ledger-${{ matrix.goos }}-${{ matrix.goarch }}"
+          make go-build BIN="${out}"
 
-          tag="${GITHUB_REF_NAME}"
-          mkdir -p release-dist
-
-          for target in linux/amd64 linux/arm64; do
-            os="${target%/*}"
-            arch="${target#*/}"
-            package="life-ledger-${tag}-${os}-${arch}"
-
-            mkdir -p "release-dist/${package}"
-            GOOS="${os}" GOARCH="${arch}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "release-dist/${package}/life-ledger" ./cmd/server
-            cp config.example.toml "release-dist/${package}/config.example.toml"
-
-            tar -C release-dist -czf "release-dist/${package}.tar.gz" "${package}"
-            rm -rf "release-dist/${package}"
-          done
-
-          (cd release-dist && sha256sum *.tar.gz > checksums.txt)
-
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            release-dist/*.tar.gz \
-            release-dist/checksums.txt \
-            --verify-tag \
-            --generate-notes
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release.md
+          files: |
+            life-ledger-${{ matrix.goos }}-${{ matrix.goarch }}

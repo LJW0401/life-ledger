@@ -1,10 +1,12 @@
+# .github/workflows/ci.yml -- main push and PR quality gate.
+# The full gate lives in Makefile so local checks and GitHub Actions do not drift.
 name: CI
 
 on:
+  pull_request:
+    branches: [main]
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
@@ -20,48 +22,25 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Install frontend dependencies
-        run: npm ci --prefix web
-
       - name: Install Playwright browser
-        run: npm --prefix web exec playwright install --with-deps chromium
+        run: |
+          npm ci --prefix web --no-audit --no-fund
+          npm --prefix web exec playwright install --with-deps chromium
 
-      - name: Check Go formatting
-        run: test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"
-
-      - name: Vet Go
-        run: go vet ./...
-
-      - name: Test Go
-        run: go test ./...
-
-      - name: Test Go race
-        run: go test -race ./...
-
-      - name: Typecheck frontend
-        run: npm run typecheck
-
-      - name: Lint frontend
-        run: npm run lint
-
-      - name: Test browser flow
-        run: CI=1 npm run test:e2e
-
-      - name: Build release binary
-        run: make build
+      - name: Full CI gate
+        run: make ci

@@ -78,6 +78,6 @@
 
 ### 快速功能：GitHub CI 和 Release 自动化
 - **类型**：架构洞察
-- **描述**：GitHub Actions 的 tag release 工作流必须先存在于默认分支，之后推送新标签才会触发；本地新分支上的工作流不会处理已经推过的旧标签。
-- **建议处理方式**：先合并工作流到 `main`，再创建并推送 `v*` 标签；如果要重发同一版本，应删除失败 release 或改用新标签。
+- **描述**：GitHub Actions 的 tag release 工作流必须先存在于默认分支，之后推送新标签才会触发；release 还需要 `release.md` 中的 `release-version` 和 pushed tag 完全一致。
+- **建议处理方式**：先合并工作流到 `main`，再按 `release.template.md` 更新 `release.md`，最后创建并推送 `v*` 标签；如果要重发同一版本，应删除失败 release 或改用新标签。
 - **紧急程度**：低
