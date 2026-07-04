@@ -43,10 +43,37 @@ life-ledger/
 ./life-ledger --config /path/to/config.toml
 ```
 
+## 本地开发
+
+首次准备依赖：
+
+```bash
+go mod tidy
+npm --prefix web install
+npm --prefix web exec playwright install chromium
+```
+
+常用门控：
+
+```bash
+test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"
+go vet ./...
+go test ./...
+go test -race ./...
+go build ./cmd/server
+npm run typecheck
+npm run lint
+npm run build
+npm run test:e2e
+```
+
+E2E 测试会自动构建前端，并用临时 `config.toml` 和临时 SQLite 数据目录启动本地服务。
+
 ## 源码结构
 
 ```text
 life-ledger/
+  docs/dev/            PRD、SAD、TPD、API、数据模型、部署和任务计划
   docs/ui/             UI 设计文档、页面草图和交互说明
   cmd/server/          程序入口，最终编译成 life-ledger 二进制
   internal/config/     读取和校验 config.toml

@@ -212,6 +212,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-1.1 [M] 搭建 Go + React 单体工程骨架
 
+- **状态**：已完成
 - **描述**：创建 `cmd/server/`、`internal/`、`web/`、`go.mod`、前端 `package.json` 和构建脚本。
 - **验收标准**：
   1. `go build ./cmd/server` 可以生成服务入口。
@@ -224,6 +225,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-1.2 [S] Smoke 测试 — 工程骨架
 
+- **状态**：已完成
 - **描述**：添加最小 E2E smoke，验证服务可启动并返回前端入口。
 - **验收标准**：
   1. Given 服务启动, When 请求 `/`, Then 返回前端入口或重定向到 `/important-dates`。
@@ -235,6 +237,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-1.3 [S] 异常测试 — 工程骨架
 
+- **状态**：已完成
 - **描述**：覆盖脚手架早期的启动失败和路由异常。
 - **覆盖场景清单**：
   - [x] 失败依赖：前端 dist 缺失时构建失败，而不是运行时静默空白。
@@ -252,6 +255,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-1.3G [集成门控] 工程骨架最小集成
 
+- **状态**：已完成
 - **描述**：验证脚手架、最小服务启动和早期 E2E 测试可以一起运行。
 - **验收标准**：
   1. `go test ./... && npm run test:e2e` 通过。
@@ -263,6 +267,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-1.4 [M] 实现配置读取与权限检查
 
+- **状态**：已完成
 - **描述**：实现 `config.toml` 读取、默认值、必填项校验、敏感配置和文件权限检查。
 - **验收标准**：
   1. 合法配置可以启动服务。
@@ -275,6 +280,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-1.5 [S] Smoke 测试 — 配置读取
 
+- **状态**：已完成
 - **描述**：验证合法 `config.toml` 能驱动服务监听本机地址。
 - **验收标准**：
   1. Given 合法配置, When 运行 `./life-ledger`, Then 服务监听配置端口。
@@ -286,6 +292,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-1.6 [S] 异常测试 — 配置读取
 
+- **状态**：已完成
 - **描述**：覆盖配置非法、权限过宽和敏感字段泄露。
 - **覆盖场景清单**：
   - [x] 非法输入：TOML 格式错误、必填字段缺失、明文密码字段。
@@ -304,6 +311,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-1.7 [集成门控] 工程骨架与配置集成
 
+- **状态**：已完成
 - **描述**：验证脚手架、配置和最小服务启动集成状态。
 - **验收标准**：
   1. `go vet ./... && go test ./... && npm run typecheck && npm run build` 通过。
@@ -315,6 +323,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：CI 门控/本地完整门控命令。
 #### WI-1.8 [M] 实现 SQLite 初始化和内嵌 migration
 
+- **状态**：已完成
 - **描述**：实现 SQLite 打开、文件权限、内嵌 migration、`schema_migrations` 和 transaction helper。
 - **验收标准**：
   1. 首次启动自动创建数据库并执行 migration。
@@ -327,6 +336,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-1.9 [S] Smoke 测试 — SQLite 初始化
 
+- **状态**：已完成
 - **描述**：验证临时数据库首次创建和重启读取。
 - **验收标准**：
   1. Given 数据库不存在, When 启动服务, Then 数据库文件和 schema 被创建。
@@ -338,6 +348,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-1.10 [S] 异常测试 — SQLite 初始化
 
+- **状态**：已完成
 - **描述**：覆盖 migration 失败、权限错误和 transaction 回滚。
 - **覆盖场景清单**：
   - [x] 失败依赖：数据库目录不可写。
@@ -356,6 +367,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-1.10G [集成门控] 配置与数据库集成
 
+- **状态**：已完成
 - **描述**：验证配置读取、文件权限、SQLite 初始化和 migration 可以共同完成启动链路。
 - **验收标准**：
   1. `go vet ./... && go test ./... && go test -race ./...` 通过。
@@ -367,6 +379,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-1.11 [M] 实现内嵌前端和三页路由壳
 
+- **状态**：已完成
 - **描述**：实现 Go `embed` 静态资源服务、SPA fallback、React 三页导航壳。
 - **验收标准**：
   1. `/` 自动进入 `/important-dates`。
@@ -379,6 +392,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 #### WI-1.12 [S] Smoke 测试 — 三页路由
 
+- **状态**：已完成
 - **描述**：用 E2E 验证三个一级页面可导航、刷新和高亮。
 - **验收标准**：
   1. Given 用户访问三条路由, When 页面刷新, Then 仍展示对应页面。
@@ -390,6 +404,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：E2E/API 测试套件。
 #### WI-1.13 [S] 异常测试 — 三页路由
 
+- **状态**：已完成
 - **描述**：覆盖未知 API、未知页面和资源缺失。
 - **覆盖场景清单**：
   - [x] 非法输入：未知 `/api/*` 返回 JSON 404。
@@ -407,6 +422,7 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
   - Hook point：API/E2E/CLI 测试夹具。
 #### WI-1.14 [集成门控] 运行基础集成
 
+- **状态**：已完成
 - **描述**：验证阶段 1 全部运行基础可用。
 - **验收标准**：
   1. 发布前完整门控除 `npm run lint` 外均已落地并通过；若 lint 脚本已创建则必须通过。
@@ -420,7 +436,13 @@ go vet ./... && go test ./... && npm run typecheck && npm run lint && npm run bu
 
 1. Given 仓库完成阶段 1, When 运行本地服务, Then 用户可以看到三页空壳。
 2. Given 配置或数据库异常, When 启动服务, Then 程序明确失败且不静默降级。
-3. 阶段状态：未开始。
+3. 阶段状态：已完成。
+
+**完成日期**：2026-07-04
+**验收结果**：通过
+**安全门控**：`test -z "$(gofmt -l ./cmd ./internal ./web/*.go)"`、`go vet ./...`、`go test ./...`、`go test -race ./...`、`go build ./cmd/server`、`npm run typecheck`、`npm run lint`、`npm run build`、`npm run test:e2e` 全部通过
+**集成门控**：WI-1.3G、WI-1.7、WI-1.10G、WI-1.14 通过
+**备注**：已建立 Go + React 单体骨架、配置校验、SQLite migration、SPA fallback 和三页 E2E 冒烟。
 
 ---
 

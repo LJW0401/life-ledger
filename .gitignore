@@ -1,0 +1,17 @@
+# Build and dependency outputs.
+node_modules/
+web/node_modules/
+web/dist/*
+!web/dist/.keep
+/dist/
+/server
+
+# Local runtime state.
+config.toml
+data/
+backups/
+
+# Test artifacts.
+coverage/
+playwright-report/
+test-results/

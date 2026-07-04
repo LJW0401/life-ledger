@@ -1,0 +1,12 @@
+CREATE INDEX idx_transactions_date_type ON transactions(occurred_date, type);
+CREATE INDEX idx_transactions_category_date ON transactions(category, occurred_date);
+CREATE INDEX idx_transactions_include_income_date ON transactions(include_income, occurred_date);
+CREATE INDEX idx_transactions_budget ON transactions(include_budget, category, occurred_date);
+CREATE INDEX idx_important_dates_date_repeat ON important_dates(date, repeat_rule);
+CREATE INDEX idx_decisions_status_review ON decisions(status, review_date);
+CREATE INDEX idx_entity_tags_entity ON entity_tags(entity_type, entity_id);
+CREATE INDEX idx_entity_tags_tag ON entity_tags(tag_id, entity_type);
+CREATE INDEX idx_device_sessions_token_hash ON device_sessions(token_hash);
+CREATE INDEX idx_device_sessions_state ON device_sessions(expires_at, revoked_at);
+CREATE INDEX idx_login_failures_identity ON login_failures(username, client_ip);
+CREATE INDEX idx_audit_events_time_type ON audit_events(occurred_at, event_type);
