@@ -4,6 +4,7 @@ web/node_modules/
 web/dist/*
 !web/dist/.keep
 /dist/
+/bin/
 /server
 
 # Local runtime state.

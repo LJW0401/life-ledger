@@ -159,9 +159,8 @@ journalctl -u life-ledger -f
 
 ```bash
 npm --prefix web install
-npm run build
 go test ./...
-go build -o dist/life-ledger ./cmd/server
+make build
 ```
 
 发布包至少包含：

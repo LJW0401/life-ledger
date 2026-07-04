@@ -74,6 +74,18 @@ npm --prefix web install
 npm --prefix web exec playwright install chromium
 ```
 
+生成部署二进制：
+
+```bash
+make build
+```
+
+产物位置：
+
+```text
+bin/life-ledger
+```
+
 常用门控：
 
 ```bash
