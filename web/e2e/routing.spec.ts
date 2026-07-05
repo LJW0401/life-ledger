@@ -113,6 +113,66 @@ test('transactions update summary and budget usage', async ({ page }) => {
   await expect(page.getByLabel('账单列表')).not.toContainText('餐饮')
 })
 
+test('transactions ignore stale summary responses', async ({ page }) => {
+  let releaseFirstSummary: () => void = () => {
+    throw new Error('first summary request was not captured')
+  }
+  let markFirstSummaryStarted: () => void = () => {}
+  let markFirstSummaryFinished: () => void = () => {}
+  const firstSummaryStarted = new Promise<void>((resolve) => {
+    markFirstSummaryStarted = resolve
+  })
+  const firstSummaryCanContinue = new Promise<void>((resolve) => {
+    releaseFirstSummary = resolve
+  })
+  const firstSummaryFinished = new Promise<void>((resolve) => {
+    markFirstSummaryFinished = resolve
+  })
+  let summaryRequestCount = 0
+
+  await page.route('**/api/transactions/summary', async (route) => {
+    summaryRequestCount += 1
+    if (summaryRequestCount === 1) {
+      markFirstSummaryStarted()
+      await firstSummaryCanContinue
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ income: '0.00', expense: '999.99', balance: '-999.99' })
+      })
+      markFirstSummaryFinished()
+      return
+    }
+    await route.continue()
+  })
+
+  await page.goto('/transactions')
+  await login(page, '账单流水')
+  await firstSummaryStarted
+
+  const billForm = page.getByLabel('账单表单')
+  await billForm.getByLabel('日期', { exact: true }).fill('2026-07-04')
+  await billForm.getByLabel('时间').fill('08:30')
+  await billForm.getByLabel('金额').fill('25.50')
+  await billForm.getByLabel('分类').fill('餐饮')
+  const createResponse = page.waitForResponse(
+    (response) => response.url().endsWith('/api/transactions') && response.request().method() === 'POST'
+  )
+  await page.getByRole('button', { name: '保存账单' }).click()
+  expect((await createResponse).status()).toBe(201)
+  await expect(page.getByLabel('账单统计')).toContainText('支出 25.50')
+
+  releaseFirstSummary()
+  await firstSummaryFinished
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+  )
+  await expect(page.getByLabel('账单统计')).toContainText('支出 25.50')
+})
+
 test('decisions can be created and deleted', async ({ page }) => {
   await page.goto('/decisions')
   await login(page, '决策记录')
