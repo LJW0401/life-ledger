@@ -1,5 +1,5 @@
 import { CalendarDays, CircleDollarSign, Scale } from 'lucide-react'
-import { FormEvent, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
 type Route = '/important-dates' | '/transactions' | '/decisions'
 type AuthStatus = 'checking' | 'anonymous' | 'authenticated'
@@ -105,6 +105,7 @@ export function App() {
   const [summary, setSummary] = useState<Summary>({ income: '0.00', expense: '0.00', balance: '0.00' })
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [transactionError, setTransactionError] = useState('')
+  const transactionLoadID = useRef(0)
   const [decisions, setDecisions] = useState<Decision[]>([])
   const [decisionError, setDecisionError] = useState('')
   const current = useMemo(() => {
@@ -232,21 +233,38 @@ export function App() {
   }
 
   async function loadTransactions() {
+    const loadID = transactionLoadID.current + 1
+    transactionLoadID.current = loadID
     const [transactionsResponse, summaryResponse, budgetsResponse] = await Promise.all([
       fetch('/api/transactions'),
       fetch('/api/transactions/summary'),
       fetch('/api/budgets')
     ])
+    let nextTransactions: Transaction[] | null = null
+    let nextSummary: Summary | null = null
+    let nextBudgets: Budget[] | null = null
     if (transactionsResponse.ok) {
       const payload = (await transactionsResponse.json()) as { items: Transaction[] }
-      setTransactions(payload.items ?? [])
+      nextTransactions = payload.items ?? []
     }
     if (summaryResponse.ok) {
-      setSummary((await summaryResponse.json()) as Summary)
+      nextSummary = (await summaryResponse.json()) as Summary
     }
     if (budgetsResponse.ok) {
       const payload = (await budgetsResponse.json()) as { items: Budget[] }
-      setBudgets(payload.items ?? [])
+      nextBudgets = payload.items ?? []
+    }
+    if (loadID !== transactionLoadID.current) {
+      return
+    }
+    if (nextTransactions !== null) {
+      setTransactions(nextTransactions)
+    }
+    if (nextSummary !== null) {
+      setSummary(nextSummary)
+    }
+    if (nextBudgets !== null) {
+      setBudgets(nextBudgets)
     }
   }
 

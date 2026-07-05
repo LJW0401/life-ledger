@@ -104,3 +104,18 @@
 - **描述**：GitHub Release workflow 只按 `v*` 标签触发时，标签名里的 preview 语义不会自动转成 prerelease，需要显式写入 `softprops/action-gh-release` 参数。
 - **建议处理方式**：发布 workflow 中保留 `prerelease` 和 `make_latest` 的标签名判断，并用 `scripts/check-workflows.sh` 固化检查。
 - **紧急程度**：低
+
+### 快速功能：中文 release 模板
+- **类型**：架构洞察
+- **描述**：跨项目复用 release 模板时，附件矩阵、配置文件名、升级校验和破坏性变更判断必须按当前项目事实重写，不能直接保留参考项目的领域术语。
+- **建议处理方式**：后续改 release 模板时同时核对 `.github/workflows/release.yml`、`Makefile` 和部署文档，确保模板里的命令、附件名和升级步骤都可执行。
+- **紧急程度**：低
+
+### Bug 修复：账单统计被旧请求覆盖
+- **发现于**：中文 release 模板改动后的全量 `make ci`
+- **现象**：E2E 保存账单后，账单列表出现新记录，但统计区域仍可能显示旧的 0.00。
+- **根因**：账单页初始加载和保存后的刷新可以并发返回，旧的 `/api/transactions/summary` 响应晚到后覆盖了新统计状态。
+- **修复**：为账单加载增加请求序号，只允许最新一次加载写入账单、统计和预算状态。
+- **回归测试**：`web/e2e/routing.spec.ts` 的 `transactions ignore stale summary responses`。
+- **为什么原测试没覆盖**：原 E2E 只等待正常网络时序，没有人为制造“旧请求晚于新请求返回”的乱序响应。
+- **紧急程度**：中
